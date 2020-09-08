@@ -3,6 +3,7 @@ from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
 
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, admin=False):
         '''
@@ -43,7 +44,7 @@ class User(AbstractBaseUser):
         blank=False,
     )
     admin = models.BooleanField(default=False)
-    
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()

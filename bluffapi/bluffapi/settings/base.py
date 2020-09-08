@@ -15,7 +15,6 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'apps.accounts',
-    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -59,16 +58,15 @@ WSGI_APPLICATION = 'bluffapi.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME' : 'bluff',
-        'USER' : 'postgres',
-        'PASSWORD' : 'a12345678',
-        'PORT' : '',
+        'NAME': 'bluff',
+        'USER': 'card',
+        'PASSWORD': 'a12345678',
+        'PORT': '',
     }
 }
 
 
 AUTH_USER_MODEL = 'accounts.User'
-
 
 
 # Password validation
