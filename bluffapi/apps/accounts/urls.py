@@ -8,6 +8,7 @@ accounts_router = routers.DefaultRouter()
 accounts_router.register(r'users', accounts_views.UserViewSet)
 
 urlpatterns = [
-    url(r'^login/', accounts_views.Login.as_view())
+    url(r'^login/', accounts_views.Login.as_view()),
+    url(r'^logout/', accounts_views.LogoutView.as_view()),
 ]
 urlpatterns += accounts_router.urls

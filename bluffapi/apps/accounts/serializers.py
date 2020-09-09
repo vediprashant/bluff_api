@@ -30,14 +30,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = accounts_model.User
         fields = ['name', 'email']
 
+
 class LoginSerializer(serializers.Serializer):
     '''
     Validates Email and Password format for login
     '''
-    username = serializers.EmailField()
+    email = serializers.EmailField()
     password = serializers.CharField(
         min_length=8
     )
-    class Meta:
-        fields = ['username', 'password']
 
+    class Meta:
+        fields = ['email', 'password']

@@ -10,13 +10,15 @@ SECRET_KEY = '!rnk9voithr(h^)n!c@^)5j*9a2-rsedz&0$x^@ugac6k6*wn4'
 DEBUG = True
 
 ALLOWED_HOSTS = []
+SECURE_SSL_REDIRECT = False
 
 # Application definition
 
 INSTALLED_APPS = [
     'apps.accounts',
-
+    'rest_framework',
     'rest_framework.authtoken',
+    'corsheaders',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,11 +26,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -51,6 +55,12 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ]
+}
 
 WSGI_APPLICATION = 'bluffapi.wsgi.application'
 
@@ -106,3 +116,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:3000'
+]

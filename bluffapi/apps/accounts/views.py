@@ -1,8 +1,9 @@
 from django.contrib.auth import authenticate
 
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -25,18 +26,30 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             return accounts_serializers.UserSerializer
 
+
 class Login(APIView):
     def post(self, request):
-        data = {
-            'username': request.POST['email'],
-            'password': request.POST['password']
-        }
-        loginSerializer = LoginSerializer(data=data)
+        loginSerializer = LoginSerializer(data=request.data)
         loginSerializer.is_valid(raise_exception=True)
         user = authenticate(request, **loginSerializer.validated_data)
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
-            return Response({ 'token': token.key })
+            return Response(
+                {'token': token.key})
         else:
-            return Response({ 'message': 'Invalid Credentials'},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'message': 'Invalid Credentials'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutView(APIView):
+    """
+    It deletes the token and logout user
+    """
+    authentication_classes = (TokenAuthentication, )
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token_object = Token.objects.filter(user=request.user)
+        token_object.delete()
+        return Response(status=204)
