@@ -15,6 +15,9 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'apps.accounts',
+
+    'rest_framework.authtoken',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -59,7 +62,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'bluff',
-        'USER': 'card',
+        'USER': 'postgres',
         'PASSWORD': 'a12345678',
         'PORT': '',
     }

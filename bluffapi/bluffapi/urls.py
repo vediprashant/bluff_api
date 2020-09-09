@@ -18,9 +18,9 @@ from rest_framework import routers
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from apps.accounts.urls import accounts_router
+from apps.accounts.urls import urlpatterns as accounts_urls
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^accounts/', include(accounts_router.urls)),
+    url(r'^accounts/', include(accounts_urls)),
 ]
