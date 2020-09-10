@@ -16,6 +16,8 @@ SECURE_SSL_REDIRECT = False
 
 INSTALLED_APPS = [
     'apps.accounts',
+    'apps.game',
+    'apps.common',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
