@@ -44,7 +44,7 @@ class Login(APIView):
 
 class LogoutView(APIView):
     """
-    It deletes the token and logout user
+    It deletes the token and logsout user
     """
     authentication_classes = (TokenAuthentication, )
     permission_classes = [permissions.IsAuthenticated]

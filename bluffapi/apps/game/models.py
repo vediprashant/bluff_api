@@ -23,7 +23,7 @@ class Game(common_models.TimeStampModel):
 class GamePlayer(common_models.TimeStampModel):
     """
     Model to store the details of a player playing a game
-    """b
+    """
     user = models.ForeignKey(accounts_models.User, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     player_id = models.PositiveIntegerField()

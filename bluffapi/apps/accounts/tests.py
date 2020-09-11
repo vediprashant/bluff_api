@@ -101,7 +101,7 @@ class LoginTest(TestCase):
             reverse('login'),
             {
                 'email': 'a@b.com',
-                'password': 'a1234567',#diff password
+                'password': 'a1234567',  # diff password
             }
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -111,8 +111,37 @@ class LoginTest(TestCase):
         response = self.client.post(
             reverse('login'),
             {
-                'email': 'ab.com', #incorrect email format
+                'email': 'ab.com',  # incorrect email format
                 'password': 'a12345678',
             }
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutTest(TestCase):
+    """
+    Test To check functioning of logout api
+    """
+    # When credentials are correct
+
+    def test_sucessful_logout(self):
+        user = G(User, email='a@b.com', password=make_password('a12345678'))
+        token = G(Token, user=user)
+        auth_headers = {
+            'HTTP_AUTHORIZATION': 'Token ' + token.key,
+        }
+        response = self.client.post(reverse('logout'), **auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    # when unauthenticated user tries to logout
+    def test_unauthenticated_logout(self):
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # when token provided is not correct
+    def test_invalid_token(self):
+        auth_headers = {
+            'HTTP_AUTHORIZATION': 'Token ' + 'qwerty11',
+        }
+        response = self.client.post(reverse('logout'), **auth_headers)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
