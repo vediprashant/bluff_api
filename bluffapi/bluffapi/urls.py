@@ -22,5 +22,5 @@ from apps.accounts.urls import urlpatterns as accounts_urls
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^accounts/', include(accounts_urls)),
+    url(r'^accounts/', include(accounts_urls), name='accounts'),
 ]
