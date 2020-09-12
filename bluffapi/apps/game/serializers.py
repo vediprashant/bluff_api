@@ -32,13 +32,13 @@ class CreateGameSerializer(serializers.Serializer):
                 player_id=1,
                 disconnected=True,
                 noAction=0,
-                cards='0'*52, #Player has no cards initialy
+                cards='0'*156, #Player has no cards initially
             )
             GameTableSnapshot.objects.create(
                 game=game,
                 currentSet=None,
                 cardsOnTable='1'*game.decks*52+'0'*(3-game.decks)*52,  #All cards on table
-                lastCards='0'*game.decks*52, #no last cards
+                lastCards='0'*156, #no last cards
                 lastUser=None,
                 currentUser=None,
                 bluffCaller=None,
