@@ -73,8 +73,8 @@ WSGI_APPLICATION = 'bluffapi.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'bluff',
-        'USER': 'postgres',
+        'NAME': 'bluffgame',
+        'USER': 'card',
         'PASSWORD': 'a12345678',
         'PORT': '',
     }
@@ -106,7 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Calcutta'
 
 USE_I18N = True
 
