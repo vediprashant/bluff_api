@@ -25,4 +25,4 @@ class CreateGame(APIView):
             data=request.data, context=request.user)
         serializer.is_valid(raise_exception=True)
         game = serializer.save()
-        return Response(game)
+        return Response(game.id)

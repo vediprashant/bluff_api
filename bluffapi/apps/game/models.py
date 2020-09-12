@@ -41,9 +41,10 @@ class GamePlayer(common_models.TimeStampModel):
 class GameTableSnapshot(common_models.TimeStampModel):
     """
     Model to store the state of gameTable
+    All cards are on Table untill Game has started
     """
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    currentSet = models.CharField(max_length=156)
+    currentSet = models.PositiveIntegerField(null=True, blank=True)
     cardsOnTable = models.CharField(max_length=156)
     lastCards = models.CharField(max_length=156)
     lastUser = models.ForeignKey(
