@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db import IntegrityError
 
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -35,6 +36,11 @@ class CreateGamePlayer(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = CreateGamePlayerSerializer(data=request.data)
+        serializer = CreateGamePlayerSerializer(
+            data=request.data, context=request.user)
         serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except IntegrityError as e:
+            return Response({"msg": "User already invited for the game"}, status=400)
         return Response(status=201)

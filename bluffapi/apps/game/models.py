@@ -15,6 +15,7 @@ class Game(common_models.TimeStampModel):
         on_delete=models.CASCADE,
         related_name='winner',
         null=True,
+        blank=True
     )
     owner = models.ForeignKey(accounts_models.User,
                               on_delete=models.CASCADE, related_name='owner')
@@ -34,8 +35,11 @@ class GamePlayer(common_models.TimeStampModel):
     noAction = models.PositiveIntegerField(default=0)
     cards = models.CharField(max_length=156)
 
+    class Meta:
+        unique_together = ('user', 'game')
+
     def __str__(self):
-        return f"{self.user.name}"
+        return f"{self.user.name} {self.game.id}"
 
 
 class GameTableSnapshot(common_models.TimeStampModel):

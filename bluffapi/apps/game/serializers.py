@@ -63,7 +63,7 @@ class CreateGamePlayerSerializer(serializers.Serializer):
             msg = "User not found, Please provide Valid email or ask the user to Sign Up"
             raise exceptions.ValidationError(msg)
         game = Game.objects.filter(pk=data.get('game')).first()
-        if game:
+        if game and game.owner == self.context:
             data['game'] = game
         else:
             msg = "Game id not found, Please provide Valid Input"
