@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from rest_framework import status
 from apps.game.models import Game
 from apps.game.serializers import CreateGameSerializer
 
@@ -25,4 +25,4 @@ class CreateGame(APIView):
             data=request.data, context=request.user)
         serializer.is_valid(raise_exception=True)
         game = serializer.save()
-        return Response(game.id)
+        return Response({'id': game.id}, status=status.HTTP_201_CREATED)
