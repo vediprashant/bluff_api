@@ -75,3 +75,8 @@ class CreateGamePlayerSerializer(serializers.Serializer):
         validated_data['cards'] = '0'*(validated_data['game'].decks*52)
         instance = GamePlayer.objects.create(**validated_data)
         return instance
+
+class GameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Game
+        fields = ['id','created_at']
