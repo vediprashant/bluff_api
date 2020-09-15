@@ -63,8 +63,9 @@ class ListGames(ListAPIView):
         )
         if 'owner' in filters:
             queryset = queryset.filter(owner=user)
-        if 'started' in filters:
-            queryset = queryset.filter(started=True)
+        queryset = queryset.filter(started=True)
+        if 'completed' in filters:
+            queryset = queryset.filter(~Q(winner=None))
         queryset = queryset.order_by('created_at')
         return queryset
 
