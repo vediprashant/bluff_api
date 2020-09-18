@@ -4,7 +4,7 @@ from django.contrib.auth.models import (
 )
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, admin=False):
+    def create_user(self, email, password=None,):
         '''
         Creates and saves a user with given email, name and password
         '''
@@ -13,7 +13,7 @@ class UserManager(BaseUserManager):
 
         user = self.model(
             email=self.normalize_email(email),
-            admin=admin,
+            # admin=admin,
         )
         user.set_password(password)
         user.save(using=self._db)
@@ -26,37 +26,38 @@ class UserManager(BaseUserManager):
         user = self.create_user(
             email,
             password=password,
-            admin=True,
         )
         return user
 
 
 class User(AbstractBaseUser):
+    '''
+    User model for player
+    '''
     email = models.EmailField(
-        verbose_name='email address',
         max_length=255,
         unique=True,
+        help_text='Email address'
     )
     name = models.CharField(
         max_length=255,
-        null=False,
         blank=False,
+        help_text='Name'
     )
-    admin = models.BooleanField(default=False)
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['name']
     objects = UserManager()
 
     @property
     def is_staff(self):
         "Is the user a member of staff?"
-        return self.admin
+        return True
 
     @property
     def is_admin(self):
         "Is the user a admin member?"
-        return self.admin
+        return True
 
     def has_module_perms(self, app_label):
         "Does the user have permissions to view the app `app_label`?"
