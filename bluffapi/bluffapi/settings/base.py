@@ -29,7 +29,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'channels',
+
 ]
+
+ASGI_APPLICATION = "bluffapi.routing.application"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

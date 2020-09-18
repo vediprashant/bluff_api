@@ -76,7 +76,55 @@ class CreateGamePlayerSerializer(serializers.Serializer):
         instance = GamePlayer.objects.create(**validated_data)
         return instance
 
+
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ['id','created_at']
+        fields = ['id', 'created_at']
+
+
+class SocketInitSerializer(serializers.Serializer):
+    '''
+    Game must exist
+    User must be a game player of Game
+    '''
+    game = serializers.IntegerField(
+        min_value=1
+    )
+    user = serializers.IntegerField(
+        min_value=1
+    )
+
+    class Meta:
+        fields = ['game', 'user']
+
+    def validate_game(self, value):
+        '''
+        checks if game exists
+        returns game object
+        '''
+        if not Game.objects.filter(id=value).exists():
+            raise exceptions.ValidationError('Game does not exist')
+        return value
+
+    def validate_user(self, value):
+        if not accounts_model.User.objects.filter(id=value).exists():
+            raise exceptions.ValidationError('User does not exist')
+        return value
+
+    def validate(self, data):
+        game_player = GamePlayer.objects.filter(game_id=data['game'], user_id=data['user'])
+        if len(game_player) == 0:
+            raise exceptions.ValidationError('User not a part of given game')
+        data['game_player'] = game_player[0].id
+        return data
+
+class SocketGameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Game
+        fields='__all__'
+
+class SocketGamePlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=GamePlayer
+        fields='__all__'
