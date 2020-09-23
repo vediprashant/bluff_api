@@ -13,7 +13,6 @@ class UserManager(BaseUserManager):
 
         user = self.model(
             email=self.normalize_email(email),
-            # admin=admin,
         )
         user.set_password(password)
         user.save(using=self._db)
@@ -41,7 +40,6 @@ class User(AbstractBaseUser):
     )
     name = models.CharField(
         max_length=255,
-        blank=False,
         help_text='Name'
     )
     
@@ -52,11 +50,6 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         "Is the user a member of staff?"
-        return True
-
-    @property
-    def is_admin(self):
-        "Is the user a admin member?"
         return True
 
     def has_module_perms(self, app_label):
@@ -71,11 +64,11 @@ class User(AbstractBaseUser):
 
     def get_full_name(self):
         # The user is identified by their email address
-        return self.email
+        return self.name
 
     def get_short_name(self):
         # The user is identified by their email address
-        return self.email
+        return self.name
 
     def __str__(self):
         return self.email
