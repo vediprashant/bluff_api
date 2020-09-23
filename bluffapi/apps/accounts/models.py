@@ -45,12 +45,7 @@ class User(AbstractBaseUser):
         blank=False,
         help_text='Name'
     )
-<<<<<<< HEAD
-    admin = models.BooleanField(default=False)
-
-=======
     
->>>>>>> origin/nk_task_1
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
     objects = UserManager()

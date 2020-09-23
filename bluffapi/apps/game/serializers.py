@@ -124,7 +124,39 @@ class SocketGameSerializer(serializers.ModelSerializer):
         model=Game
         fields='__all__'
 
-class SocketGamePlayerSerializer(serializers.ModelSerializer):
+class CardCountSerializer(serializers.ModelSerializer):
     class Meta:
         model=GamePlayer
-        fields='__all__'
+        fields=['cards']
+
+class GamePlayerUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=accounts_model.User
+        fields=['id','name','email']
+
+class SocketGamePlayerSerializer(serializers.ModelSerializer):
+    card_count=serializers.SerializerMethodField()
+    user=GamePlayerUserSerializer()
+    class Meta:
+        model=GamePlayer
+        fields=['player_id','disconnected','user','card_count']
+    def get_card_count(self, obj):
+        return obj.cards.count('0')
+        #Replace with this line 
+        #return obj.cards.count('1')
+
+class SocketMyselfSerializer(serializers.ModelSerializer):
+    user=GamePlayerUserSerializer()
+    class Meta:
+        model=GamePlayer
+        fields=['cards','user']
+
+class SocketGameTableSerializer(serializers.ModelSerializer):
+    card_count=serializers.SerializerMethodField()
+    class Meta:
+        model=GameTableSnapshot
+        fields=['currentSet','card_count']
+    def get_card_count(self, obj):
+        return obj.cardsOnTable.count('1')
+        #Replace with this line 
+        #return obj.cards.count('1')

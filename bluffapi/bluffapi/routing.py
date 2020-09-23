@@ -8,7 +8,7 @@ from channels.auth import AuthMiddlewareStack
 
 application = ProtocolTypeRouter({
     # (http->django views is added by default)
-    'websocket': AuthMiddlewareStack(
+    'websocket': TokenAuthMiddlewareStack(
         URLRouter(
             websocket_urlpatterns
         )
