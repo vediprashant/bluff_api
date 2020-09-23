@@ -14,9 +14,10 @@ class TokenAuthMiddleware:
     def __call__(self, scope):
         headers = dict(scope['headers'])
         try:
-            token = Token.objects.get(key=str(headers[b'cookie']).split('=')[-1][:-1])
+            key = str(headers[b'cookie']).split('=')[-1][:-1]
+            token = Token.objects.get(key=key)
             scope['user'] = token.user
-        except Token.DoesNotExist:
+        except:
             scope['user'] = AnonymousUser()
         return self.inner(scope)
 
