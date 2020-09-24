@@ -167,3 +167,34 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
 
     def get_card_count(self, obj):
         return obj.cardsOnTable.count('1')
+
+
+class DistributeCardsSerializer(serializers.Serializer):
+    all_player_cards = serializers.DictField()
+
+    class Meta:
+        fields = ['all_player_cards']
+
+    def create(self, validated_data):
+        game = self.context['game']
+        with transaction.atomic():
+            for player_id, cards in validated_data['all_player_cards'].items():
+                player = GamePlayer.objects.get(game=game, player_id=player_id)
+                player.cards = cards
+                player.save()
+        return game
+
+    def validate(self, data):
+        '''
+        checks if each player exists
+        '''
+        for player_id, cards in data['all_player_cards'].items():
+            # If no such game player id exists
+            game = self.context['game']
+            if not game.gameplayer_set\
+                    .filter(player_id=player_id).exists():
+                raise Exception(
+                    f'player id {player_id }does not exist for this game')
+            if len(cards) != 156:
+                raise Exception(f'Invalid cards config set for player id {player_id}')
+        return data

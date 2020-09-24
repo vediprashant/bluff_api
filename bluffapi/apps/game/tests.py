@@ -1,11 +1,17 @@
 from django.test import TestCase
-from apps.accounts.models import User
 from django.urls import reverse
+from django.contrib.auth.hashers import make_password
+
 from rest_framework import status
 from rest_framework.response import Response
-from ddf import G
 from rest_framework.authtoken.models import Token
-from django.contrib.auth.hashers import make_password
+from ddf import G
+import pytest
+from channels.testing import WebsocketCommunicator
+
+from apps.accounts.models import User
+from apps.game.consumers import ChatConsumer
+from bluffapi.routing import application
 
 
 class gameCreationTest(TestCase):
@@ -39,3 +45,16 @@ class gameCreationTest(TestCase):
         response = self.client.post(reverse('create_game'), {
                                     'decks': 4})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db
+async def test_consumer():
+    communicator = WebsocketCommunicator(application, "/ws/chat/1/")
+    connected, subprotocol = await communicator.connect()
+    message = await communicator.receive_from()
+    res = await communicator.disconnect()
+    print(res)
+    #WIP
+    #print(message)
+    
