@@ -5,6 +5,9 @@ from django.contrib.auth.models import (
 
 
 class UserManager(BaseUserManager):
+    '''
+    User Manager for creating users and superusers
+    '''
     def create_user(self, email, password=None, **kwargs):
         '''
         Creates and saves a user with given email, name and password
@@ -53,18 +56,24 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def is_staff(self):
-        "Is the user a member of staff?"
+        '''
+        Returns True if is_superuser is True
+        '''
         if self.is_superuser:
             return True
         else:
             return False
 
     def get_full_name(self):
-        # The user is identified by their email address
+        '''
+        Returns Full Name of user i.e name
+        '''
         return self.name
 
     def get_short_name(self):
-        # The user is identified by their email address
+        '''
+        Returns Short name of user i.e name
+        '''
         return self.name
 
     def __str__(self):
