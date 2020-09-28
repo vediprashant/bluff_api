@@ -17,18 +17,18 @@ class ChatConsumer(WebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.actions = {
-            'start': self.startGame
+            # define your actions here
+            'start': self.startGame,
         }
 
     def connect(self):
         # if not self.scope['user'].is_authenticated():
         #     self.close()
         self.accept()
-        print(self.scope['user'])
         request_data = {
             'game': self.scope['url_route']['kwargs']['game_id'],
-            # 'user': self.scope['user'].id
-            'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
+            'user': self.scope['user'].id
+            # 'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
         }
 
         # Initialize self variables,update gameplayer , send game state
@@ -36,12 +36,16 @@ class ChatConsumer(WebsocketConsumer):
         try:
             serializer.is_valid(raise_exception=True)
             self.game_player = serializer.validated_data['game_player']
-
             # assign a player_id, set disconnected to false
             if self.game_player.player_id is None:
-                last_player_id = self.game_player.game.gameplayer_set.filter(
+                last_player = self.game_player.game.gameplayer_set.filter(
                     ~Q(player_id=None)
-                ).order_by('player_id').last().player_id
+                ).order_by('player_id').last()
+                # If no one has been assigned any player_id, last_player is none
+                if last_player:
+                    last_player_id = last_player.player_id
+                else:
+                    last_player_id = 0
                 if last_player_id >= 9:
                     raise Exception('Game is Full')
                 data_update = {

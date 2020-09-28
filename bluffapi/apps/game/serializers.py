@@ -145,9 +145,7 @@ class SocketGamePlayerSerializer(serializers.ModelSerializer):
         }
 
     def get_card_count(self, obj):
-        return obj.cards.count('0')
-        # Replace with this line
-        # return obj.cards.count('1')
+        return obj.cards.count('1')
 
 
 class SocketMyselfSerializer(serializers.ModelSerializer):
