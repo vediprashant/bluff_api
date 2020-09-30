@@ -18,6 +18,14 @@ class CreateGameSerializer(serializers.Serializer):
     class Meta:
         fields = ['decks']
 
+    def initial_cards(self, decks):
+        if decks == 1:
+            return '100'*52
+        elif decks == 2:
+            return '110'*52
+        else:
+            return '111'*52
+
     def create(self, validated_data):
         with transaction.atomic():
             game = Game.objects.create(
@@ -32,12 +40,12 @@ class CreateGameSerializer(serializers.Serializer):
                 player_id=1,
                 disconnected=True,
                 noAction=0,
-                cards='0'*156, #Player has no cards initially
+                cards='0'*156,  # Player has no cards initially
             )
             GameTableSnapshot.objects.create(
                 game=game,
                 currentSet=None,
-                cardsOnTable='1'*game.decks*52+'0'*(3-game.decks)*52,  #All cards on table
+                cardsOnTable=self.initial_cards(game.decks), #All cards on table
                 lastCards='0'*156, #no last cards
                 lastUser=None,
                 currentUser=None,
@@ -45,4 +53,5 @@ class CreateGameSerializer(serializers.Serializer):
                 bluffSuccessful=None,
                 didSkip=None
             )
+
         return game
