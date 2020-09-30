@@ -56,11 +56,17 @@ class gameCreationTest(TestCase):
 @pytest.mark.django_db(transaction=True)
 class InitGame:
     '''
-    Base class for socket based modules, initializes a game
+    Base class for socket based modules, initializes a game 
+    with given players and decks, all disconnected, but with player_id
+    
+    Creates a websocket connection with api
     '''
     user = None
     game = None
-
+    other_players = []
+    self_player = None
+    gts = None
+    communicator = None
     def setUp(self, decks, player_count):
         '''
         Initializes a game, with given decks and players
@@ -68,25 +74,33 @@ class InitGame:
         self.user = G(User)
         G(Token, user=self.user)
         self.game = G(Game, owner=self.user, decks=decks)
-        gts = G(
+        self.gts = G(
             GameTableSnapshot,
             game=self.game,
             cardsOnTable=f"{'1'*52*self.game.decks}{'0'*52*(3-self.game.decks)}"
         )
-        self_player = G(GamePlayer, game=self.game,
+        self.self_player = G(GamePlayer, game=self.game,
                         user=self.user, cards='0'*156 , player_id=1)
-        other_players = []
         for i in range(2, player_count+1):
-            other_players.append(
+            self.other_players.append(
                 G(GamePlayer, game=self.game, cards='0'*156, player_id=i))
+        
+        #Communicator
+        self.communicator = WebsocketCommunicator(
+            application,
+            f'ws/chat/{self.game.id}/',
+            headers=[
+                (b'cookie', bytes(f'token={self.user.auth_token}', 'utf-8'))]
+        )
+
         return {
-            'game_table_snapshot': gts,
-            'players': other_players,
-            'self_player': self_player
+            'game_table_snapshot': self.gts,
+            'players': self.other_players,
+            'self_player': self.self_player
         }
 
 
-class TestJoinGame(InitGame):
+class sTestJoinGame(InitGame):
     '''
     Tests "game join" and "game start"
     '''
@@ -142,7 +156,7 @@ class TestJoinGame(InitGame):
                         ignore_order=True)
         # response contains extra stuff and nothing more
         if diff.get('dictionary_item_removed') and len(diff.keys()) == 1:
-            assert False
+            assert True
         # response perfectly matches expected output
         elif len(diff.keys()) == 0:
             assert True
@@ -150,6 +164,7 @@ class TestJoinGame(InitGame):
             print(json.dumps(json.loads(response), indent=4))  # Actual response
             print(diff)  # difference with expected response
             assert False
+        await communicator.disconnect(code=1006)
 
 
 class TestStartGame(InitGame):
@@ -157,3 +172,31 @@ class TestStartGame(InitGame):
     @pytest.mark.asyncio
     async def test_start_game(self):
         pass
+
+class TestCallBluff(InitGame):
+
+    @pytest.mark.asyncio
+    async def test_call_bluff(self):
+        self.setUp(2,9)
+        for player in self.other_players:
+            player.disconnected=False
+            player.save()
+        self.gts.cardsOnTable='101101'*26 #random cards on table
+        self.gts.currentUser = self.self_player
+        self.gts.lastCards = '1'+'0'*155 #complement of cards on table
+        self.gts.lastUser = self.other_players[6]
+        self.gts.currentSet = 9
+        self.gts.save()
+        
+        #Time to call bluff
+        connected, subprotocol = await self.communicator.connect()
+        assert connected
+        await self.communicator.receive_from()
+        data_to_send = {
+            'action': 'callBluff'
+        }
+        await self.communicator.send_json_to(data_to_send)
+        await self.communicator.wait()
+        print(GamePlayer.objects.get(id=self.gts.lastUser.id).cards)
+        assert False
+        

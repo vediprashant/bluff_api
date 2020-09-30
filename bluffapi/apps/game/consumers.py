@@ -2,7 +2,8 @@ import json
 import random
 import math
 
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db import transaction
 
 from channels.generic.websocket import WebsocketConsumer
 
@@ -21,6 +22,7 @@ class ChatConsumer(WebsocketConsumer):
             # define your actions here
             'start': self.startGame,
             'play': self.updateCards,
+            'callBluff': self.callBluff,
         }
 
     def connect(self):
@@ -35,8 +37,8 @@ class ChatConsumer(WebsocketConsumer):
         self.accept()
         request_data = {
             'game': self.room_name,
-            # 'user': self.scope['user'].id
-            'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
+            'user': self.scope['user'].id
+            #'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
         }
         # Initialize self variables,update gameplayer , send game state
         serializer = SocketInitSerializer(data=request_data)
@@ -63,7 +65,6 @@ class ChatConsumer(WebsocketConsumer):
                 data_update = {
                     'disconnected': False
                 }
-            print(self.game_player.cards)
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data=data_update, partial=True)
             update_serializer.is_valid(raise_exception=True)
@@ -105,6 +106,86 @@ class ChatConsumer(WebsocketConsumer):
             'game_table': SocketGameTableSerializer(game_table).data,
         }
         return game_state
+
+    def getNextPlayer(self):
+        # minimum one player should be there in game with player_id set
+        # current player is assumed to be myself
+        all_players = self.game_player.game.gameplayer_set.filter(
+            ~Q(player_id=None))
+        # When not testing Replace above line with follwing to process only connected players
+        # all_players = self.game_player.game.gameplayer_set.filter(
+        #     ~Q(player_id=None) & Q(disconnected=False))
+
+        player_count = all_players.count()
+        self_id = self.game_player.player_id
+        all_players = all_players.annotate(
+            distance=(F('player_id')-self_id+player_count) % player_count)
+        result = all_players.filter(
+            ~Q(distance=0)).order_by('distance').first()
+        return result
+
+    def fromSet(self, current_set, cards):
+        '''
+        Whether all cards belong to given set
+        '''
+        # Assumes current_set between 1 and 13
+        # List of indexes on which cards exist
+        card_list = [index for index, string in enumerate(cards)
+                     if string == '1']
+        for card in card_list:
+            if math.ceil((card+1)/12) != current_set:
+                return False
+        return True
+
+    def cardsUnion(self, base_cards, new_cards):
+        '''
+        Returns a string containing cards from base_cards and new_cards
+        '''
+        my_cards = bytearray(base_cards, 'utf-8')
+        for index, card in enumerate(new_cards):
+            if card == '1':
+                my_cards[index] = ord(card)
+        return my_cards.decode('utf-8')
+
+    def callBluff(self, data):
+        # if current turn or current turn + 1
+        last_snapshot = self.game_player.game.gametablesnapshot_set.order_by(
+            'updated_at').last()
+        # check if im current user and call bluff on last player who played
+        # unless that last player is myself as well
+        # update gamestate
+        print(last_snapshot.currentUser)
+        print(self.game_player)
+        if last_snapshot.currentUser == self.game_player \
+                and last_snapshot.lastUser != self.game_player:
+            # Check last cards and currentset
+            if self.fromSet(last_snapshot.currentSet, last_snapshot.cardsOnTable):
+                # table cards are mine
+                self.game_player.cards = self.cardsUnion(
+                    self.game_player.cards, last_snapshot.cardsOnTable)
+                currentUser=last_snapshot.lastUser #The guy whose turn is next
+                loser=self.game_player# the guy who lost the bluff
+            else:
+                # table cards are his
+                last_snapshot.lastUser.cards = self.cardsUnion(
+                    last_snapshot.lastUser.cards, last_snapshot.cardsOnTable)
+                currentUser = self.game_player #The guy whose turn is next
+                loser = last_snapshot.lastUser # the guy who lost the bluff
+            new_snapshot = GameTableSnapshot(
+                game=last_snapshot.game,
+                currentSet=None,
+                cardsOnTable='0'*156,
+                lastCards='0'*156,
+                lastUser=None,
+                currentUser=currentUser,
+                bluffCaller=self.game_player,
+                bluffSuccessful=True,
+                didSkip=None,
+            )
+            with transaction.atomic():
+                loser.save() #The guy whose turn is next
+                new_snapshot.save()
+        print('sending data')
 
     def startGame(self):
         '''
