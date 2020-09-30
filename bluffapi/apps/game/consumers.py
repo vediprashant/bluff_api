@@ -8,6 +8,7 @@ from channels.generic.websocket import WebsocketConsumer
 
 from apps.game.serializers import *
 from apps.game.models import *
+from asgiref.sync import async_to_sync
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -19,18 +20,24 @@ class ChatConsumer(WebsocketConsumer):
         self.actions = {
             # define your actions here
             'start': self.startGame,
+            'play': self.updateCards,
         }
 
     def connect(self):
         # if not self.scope['user'].is_authenticated():
         #     self.close()
+        self.room_name = self.scope['url_route']['kwargs']['game_id']
+        self.room_group_name = 'game_%s' % self.room_name
+        async_to_sync(self.channel_layer.group_add)(
+            self.room_group_name,
+            self.channel_name
+        )
         self.accept()
         request_data = {
-            'game': self.scope['url_route']['kwargs']['game_id'],
-            'user': self.scope['user'].id
-            # 'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
+            'game': self.room_name,
+            # 'user': self.scope['user'].id
+            'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
         }
-
         # Initialize self variables,update gameplayer , send game state
         serializer = SocketInitSerializer(data=request_data)
         try:
@@ -56,6 +63,7 @@ class ChatConsumer(WebsocketConsumer):
                 data_update = {
                     'disconnected': False
                 }
+            print(self.game_player.cards)
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data=data_update, partial=True)
             update_serializer.is_valid(raise_exception=True)
@@ -133,11 +141,61 @@ class ChatConsumer(WebsocketConsumer):
         distribute_serializer.is_valid()
         distribute_serializer.save()
 
+    def updateCards(self, text_data):
+        '''
+        update cards on table and player cards when card is played
+        '''
+        print(text_data)
+        cards = self.game_player.cards
+        cardsOnTable = self.game_player.game.gametablesnapshot_set.latest(
+            'updated_at').cardsOnTable
+        print(len(cardsOnTable))
+        print(len(cards))
+        cardsPlayed = text_data['cardsPlayed']
+        updatedCards = ""
+        updatedCardsOnTable = ""
+        for ele in range(len(cards)):
+            if cardsPlayed[ele] == '1':
+                updatedCards += '0'
+                updatedCardsOnTable += '1'
+            else:
+                updatedCards += cards[ele]
+                updatedCardsOnTable += cardsOnTable[ele]
+        update_player_serializer = SocketGamePlayerSerializer(
+            self.game_player, data={'cards': updatedCards}, partial=True)
+        update_player_serializer.is_valid(raise_exception=True)
+        update_player_serializer.save()
+        print(cardsPlayed)
+        print(updatedCards)
+        print(updatedCardsOnTable)
+        GameTableSnapshot.objects.create(
+            game=self.game_player.game,
+            currentSet=text_data['set'],
+            cardsOnTable=updatedCardsOnTable,
+            lastCards=cardsPlayed,
+            lastUser=self.game_player,
+            currentUser=self.game_player.game.gameplayer_set.get(
+                player_id=text_data['current_user']),
+            bluffCaller=None,
+            bluffSuccessful=None,
+            didSkip=None
+        )
+
+    def playCards(self, event):
+        print(self.scope['user'])
+        # self.send(text_data=json.dumps({
+        #     type: "cards updated",
+        #     **self.updateGameState(user_id=1)
+        # }))
+        self.send(text_data=json.dumps({
+            'init_success': True,
+            **self.updateGameState(1)
+        }))
+
     def receive(self, text_data):
         '''
         performs specified actions
         '''
-        text_data
         dict_data = json.loads(text_data)
         if not dict_data.get('action'):
             return
@@ -147,5 +205,13 @@ class ChatConsumer(WebsocketConsumer):
             lambda: self.send(text_data=json.dumps({
                 'message': 'Invalid Action'
             }))
-        )()
-        pass
+        )(dict_data)
+        if dict_data['action'] == 'play':
+            print(2)
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                {
+                    'type': 'playCards',
+                    'text': text_data,
+                }
+            )

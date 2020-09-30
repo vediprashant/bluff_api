@@ -72,7 +72,7 @@ class CreateGamePlayerSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop('email')
-        validated_data['cards'] = '0'*(validated_data['game'].decks*52)
+        validated_data['cards'] = '0'*(156)
         instance = GamePlayer.objects.create(**validated_data)
         return instance
 
@@ -181,8 +181,8 @@ class DistributeCardsSerializer(serializers.Serializer):
                 player = GamePlayer.objects.get(game=game, player_id=player_id)
                 player.cards = cards
                 player.save()
-            #Clear Game Table
-            last_table_snapshot.cardsOnTable='0'*156
+            # Clear Game Table
+            last_table_snapshot.cardsOnTable = '0'*156
             last_table_snapshot.save()
         return game
 
@@ -198,5 +198,6 @@ class DistributeCardsSerializer(serializers.Serializer):
                 raise Exception(
                     f'player id {player_id }does not exist for this game')
             if len(cards) != 156:
-                raise Exception(f'Invalid cards config set for player id {player_id}')
+                raise Exception(
+                    f'Invalid cards config set for player id {player_id}')
         return data
