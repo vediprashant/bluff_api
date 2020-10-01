@@ -106,7 +106,7 @@ class ChatConsumer(WebsocketConsumer):
         }
         return game_state
 
-    def startGame(self):
+    def startGame(self, text_data):
         '''
         start a game
         distribute cards randomly
@@ -174,19 +174,34 @@ class ChatConsumer(WebsocketConsumer):
             cardsOnTable=updatedCardsOnTable,
             lastCards=cardsPlayed,
             lastUser=self.game_player,
-            currentUser=self.game_player.game.gameplayer_set.get(
-                player_id=text_data['current_user']),
+            currentUser=self.getNextPlayer(),
             bluffCaller=None,
             bluffSuccessful=None,
             didSkip=None
         )
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards',
+                'text': text_data,
+            }
+        )
+
+    def getNextPlayer(self):
+        # minimum one player should be there in game with player_id set
+        # current player is assumed to be myself
+        # When not testing Replace above line with follwing to process only connected players
+        all_players = self.game_player.game.gameplayer_set.filter(
+            ~Q(player_id=None) & Q(disconnected=False))
+        player_count = all_players.count()
+        self_id = self.game_player.player_id
+        all_players = all_players.annotate(
+            distance=(F('player_id')-self_id+player_count) % player_count)
+        result = all_players.filter(
+            ~Q(distance=0)).order_by('distance').first()
+        return result
 
     def playCards(self, event):
-        print(self.scope['user'])
-        # self.send(text_data=json.dumps({
-        #     type: "cards updated",
-        #     **self.updateGameState(user_id=1)
-        # }))
         self.send(text_data=json.dumps({
             'init_success': True,
             **self.updateGameState(1)
@@ -206,12 +221,3 @@ class ChatConsumer(WebsocketConsumer):
                 'message': 'Invalid Action'
             }))
         )(dict_data)
-        if dict_data['action'] == 'play':
-            print(2)
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
-                {
-                    'type': 'playCards',
-                    'text': text_data,
-                }
-            )

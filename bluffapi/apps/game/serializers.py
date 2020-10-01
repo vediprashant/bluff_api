@@ -175,6 +175,7 @@ class DistributeCardsSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         game = self.context['game']
+        game.started = True
         last_table_snapshot = game.gametablesnapshot_set.latest('updated_at')
         with transaction.atomic():
             for player_id, cards in validated_data['all_player_cards'].items():
@@ -184,6 +185,7 @@ class DistributeCardsSerializer(serializers.Serializer):
             # Clear Game Table
             last_table_snapshot.cardsOnTable = '0'*156
             last_table_snapshot.save()
+            game.save()
         return game
 
     def validate(self, data):
