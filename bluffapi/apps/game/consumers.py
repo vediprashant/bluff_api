@@ -38,7 +38,7 @@ class ChatConsumer(WebsocketConsumer):
         request_data = {
             'game': self.room_name,
             'user': self.scope['user'].id
-            #'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
+            # 'user': 1  # FOR TESTING ONLY, REPLACE WITH ABOVE LINE
         }
         # Initialize self variables,update gameplayer , send game state
         serializer = SocketInitSerializer(data=request_data)
@@ -80,6 +80,7 @@ class ChatConsumer(WebsocketConsumer):
             }))
 
     def disconnect(self, close_code):
+        print(f'disconnect called with close code {close_code}')
         if self.game_player:
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data={'disconnected': True}, partial=True)
@@ -93,7 +94,8 @@ class ChatConsumer(WebsocketConsumer):
         Returns Dict containing game state
         game players in ascending order of player_id
         '''
-        game = self.game_player.game
+        game = Game.objects.prefetch_related(
+            'gameplayer_set').get(id=self.game_player.game.id)
         game_players = game.gameplayer_set.order_by('player_id').filter(
             ~Q(user=user_id))  # filter() To be replaced with line below
         # filter(~Q(user=user_id) && ~Q(player_id=None))#Only return people who have joined
@@ -148,29 +150,32 @@ class ChatConsumer(WebsocketConsumer):
         return my_cards.decode('utf-8')
 
     def callBluff(self, data):
+        '''
+        Performs Call Bluff Operation if either i'm current player
+        or i'm next player
+        '''
         # if current turn or current turn + 1
         last_snapshot = self.game_player.game.gametablesnapshot_set.order_by(
             'updated_at').last()
         # check if im current user and call bluff on last player who played
         # unless that last player is myself as well
         # update gamestate
-        print(last_snapshot.currentUser)
-        print(self.game_player)
-        if last_snapshot.currentUser == self.game_player \
+        if (last_snapshot.currentUser == self.game_player
+            or self.getNextPlayer == self.game_player) \
                 and last_snapshot.lastUser != self.game_player:
             # Check last cards and currentset
             if self.fromSet(last_snapshot.currentSet, last_snapshot.cardsOnTable):
                 # table cards are mine
                 self.game_player.cards = self.cardsUnion(
                     self.game_player.cards, last_snapshot.cardsOnTable)
-                currentUser=last_snapshot.lastUser #The guy whose turn is next
-                loser=self.game_player# the guy who lost the bluff
+                currentUser = last_snapshot.lastUser  # The guy whose turn is next
+                loser = self.game_player  # the guy who lost the bluff
             else:
                 # table cards are his
                 last_snapshot.lastUser.cards = self.cardsUnion(
                     last_snapshot.lastUser.cards, last_snapshot.cardsOnTable)
-                currentUser = self.game_player #The guy whose turn is next
-                loser = last_snapshot.lastUser # the guy who lost the bluff
+                currentUser = self.game_player  # The guy whose turn is next
+                loser = last_snapshot.lastUser  # the guy who lost the bluff
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
                 currentSet=None,
@@ -183,9 +188,15 @@ class ChatConsumer(WebsocketConsumer):
                 didSkip=None,
             )
             with transaction.atomic():
-                loser.save() #The guy whose turn is next
+                loser.save()  # The guy whose turn is next
                 new_snapshot.save()
-        print('sending data')
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards',
+                'text': 'sdfasdfasd',
+            }
+        )
 
     def startGame(self):
         '''
@@ -263,14 +274,8 @@ class ChatConsumer(WebsocketConsumer):
         )
 
     def playCards(self, event):
-        print(self.scope['user'])
-        # self.send(text_data=json.dumps({
-        #     type: "cards updated",
-        #     **self.updateGameState(user_id=1)
-        # }))
         self.send(text_data=json.dumps({
-            'init_success': True,
-            **self.updateGameState(1)
+            **self.updateGameState(self.scope['user'].id)
         }))
 
     def receive(self, text_data):

@@ -58,7 +58,7 @@ class InitGame:
     '''
     Base class for socket based modules, initializes a game 
     with given players and decks, all disconnected, but with player_id
-    
+
     Creates a websocket connection with api
     '''
     user = None
@@ -67,6 +67,7 @@ class InitGame:
     self_player = None
     gts = None
     communicator = None
+
     def setUp(self, decks, player_count):
         '''
         Initializes a game, with given decks and players
@@ -80,12 +81,12 @@ class InitGame:
             cardsOnTable=f"{'1'*52*self.game.decks}{'0'*52*(3-self.game.decks)}"
         )
         self.self_player = G(GamePlayer, game=self.game,
-                        user=self.user, cards='0'*156 , player_id=1)
+                             user=self.user, cards='0'*156, player_id=1)
         for i in range(2, player_count+1):
             self.other_players.append(
                 G(GamePlayer, game=self.game, cards='0'*156, player_id=i))
-        
-        #Communicator
+
+        # Communicator
         self.communicator = WebsocketCommunicator(
             application,
             f'ws/chat/{self.game.id}/',
@@ -173,30 +174,55 @@ class TestStartGame(InitGame):
     async def test_start_game(self):
         pass
 
+
 class TestCallBluff(InitGame):
 
     @pytest.mark.asyncio
-    async def test_call_bluff(self):
-        self.setUp(2,9)
+    async def test_call_bluff_success(self):
+        self.setUp(2, 9)
         for player in self.other_players:
-            player.disconnected=False
+            player.disconnected = False
             player.save()
-        self.gts.cardsOnTable='101101'*26 #random cards on table
-        self.gts.currentUser = self.self_player
-        self.gts.lastCards = '1'+'0'*155 #complement of cards on table
-        self.gts.lastUser = self.other_players[6]
-        self.gts.currentSet = 9
-        self.gts.save()
-        
-        #Time to call bluff
+
+        # set game table snapshot
+        GameTableSnapshot.objects.filter(id=self.gts.id).update(
+            cardsOnTable='101101'*26,  # random cards on table
+            lastCards='1'+'0'*155,  # just one card, that doesnt belong to current set
+            currentUser=self.self_player,
+            lastUser=self.other_players[6],
+            currentSet=9,
+        )
+        self.gts = GameTableSnapshot.objects.get(id=self.gts.id)
+
+        # set cards of last user
+        self.gts.lastUser.cards = '010010'*26  # complement of cards on table
+        self.gts.lastUser.save()
+
+        # Time to call bluff
         connected, subprotocol = await self.communicator.connect()
         assert connected
         await self.communicator.receive_from()
+
         data_to_send = {
             'action': 'callBluff'
         }
+
         await self.communicator.send_json_to(data_to_send)
-        await self.communicator.wait()
-        print(GamePlayer.objects.get(id=self.gts.lastUser.id).cards)
-        assert False
         
+        #No need to evaluate channel layers here
+        res = await self.communicator.receive_from()
+
+        # Check last user has cards '1'*156
+        assert GamePlayer.objects.get(id=self.gts.lastUser.id).cards == '1'*156
+
+        #Check new game table snapshot
+        new_snapshot = GameTableSnapshot.objects.filter(
+            game=self.game).order_by('updated_at').last()
+        assert new_snapshot.cardsOnTable == '0'*156
+        assert new_snapshot.currentUser == self.self_player
+        assert new_snapshot.bluffCaller == self.self_player
+        assert new_snapshot.bluffSuccessful == True
+        assert new_snapshot.lastUser is None
+        assert new_snapshot.lastCards == '0'*156
+        await self.communicator.disconnect(code=1006)
+        await self.communicator.wait()
