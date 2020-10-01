@@ -23,6 +23,7 @@ class ChatConsumer(WebsocketConsumer):
             'start': self.startGame,
             'play': self.updateCards,
             'callBluff': self.callBluff,
+            'skip': self.skip,
         }
 
     def connect(self):
@@ -112,8 +113,8 @@ class ChatConsumer(WebsocketConsumer):
     def getNextPlayer(self):
         # minimum one player should be there in game with player_id set
         # current player is assumed to be myself
-        all_players = self.game_player.game.gameplayer_set.filter(
-            ~Q(player_id=None))
+        all_players = GamePlayer.objects.filter(
+            ~Q(player_id=None) & Q(game=self.game_player.game))
         # When not testing Replace above line with follwing to process only connected players
         # all_players = self.game_player.game.gameplayer_set.filter(
         #     ~Q(player_id=None) & Q(disconnected=False))
@@ -123,8 +124,18 @@ class ChatConsumer(WebsocketConsumer):
         all_players = all_players.annotate(
             distance=(F('player_id')-self_id+player_count) % player_count)
         result = all_players.filter(
-            ~Q(distance=0)).order_by('distance').first()
+            ~Q(distance=0) & Q(disconnected=False)).order_by('distance').first()
         return result
+
+    def isItMyTurn(self):
+        current_snapshot = GameTableSnapshot.objects.filter(
+            game=self.game_player.game).order_by('updated_at').last()
+        if current_snapshot.currentUser.disconnected == True:
+            if self.game_player == self.getNextPlayer():
+                return True
+        elif current_snapshot.currentUser == self.game_player:
+            return True
+        return False
 
     def fromSet(self, current_set, cards):
         '''
@@ -197,6 +208,23 @@ class ChatConsumer(WebsocketConsumer):
                 'text': 'sdfasdfasd',
             }
         )
+
+    def skip(self, data):
+        if not self.isItMyTurn():
+            return
+        current_snapshot = GameTableSnapshot.objects.filter(
+            game=self.game_player.game).order_by('updated_at')[-1]
+        current_snapshot.update(didSkip=True)
+        new_snapshot = GameTableSnapshot(
+            game=self.game_player.game,
+            currentSet=current_snapshot.current_set,
+            lastCards=current_snapshot.lastCards,
+            lastUser=current_snapshot.lastUser,
+            currentUser=self.getNextPlayer,
+            bluffCaller=None,
+            bluffSuccessful=None,
+            didSkip=None,
+        ).save()
 
     def startGame(self):
         '''
