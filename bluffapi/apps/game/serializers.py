@@ -160,20 +160,27 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
     card_count = serializers.SerializerMethodField()
     current_player_id = serializers.SerializerMethodField()
     last_player_id = serializers.SerializerMethodField()
+    last_card_count = serializers.SerializerMethodField()
 
     class Meta:
         model = GameTableSnapshot
-        fields = ['currentSet', 'card_count', 'current_player_id', 'last_player_id']
+        fields = ['currentSet', 'card_count', 'current_player_id',
+                  'last_player_id', 'last_card_count']
 
     def get_card_count(self, obj):
         return obj.cardsOnTable.count('1')
 
-    def get_current_player_id(self,obj):
+    def get_current_player_id(self, obj):
         return obj.currentUser.player_id
 
-    def get_last_player_id(self,obj):
+    def get_last_player_id(self, obj):
         if obj.lastUser:
             return obj.lastUser.player_id
+        return None
+
+    def get_last_card_count(self, obj):
+        if obj.lastCards:
+            return obj.lastCards.count('1')
         return None
 
 

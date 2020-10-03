@@ -83,6 +83,13 @@ class ChatConsumer(WebsocketConsumer):
     def disconnect(self, close_code):
         print(f'disconnect called with close code {close_code}')
         if self.game_player:
+            # Check if he was current user
+            last_snapshot = GameTableSnapshot.objects.filter(
+                game=self.game_player.game).latest('updated_at')
+            if last_snapshot.currentUser == self.game_player:
+                # Make him skip his turn
+                self.skip('Forced Skip')
+                print("Forced Skip")
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data={'disconnected': True}, partial=True)
             update_serializer.is_valid(raise_exception=True)
@@ -111,7 +118,11 @@ class ChatConsumer(WebsocketConsumer):
         print(json.dumps(game_state, indent=2))
         return game_state
 
-    def getNextPlayer(self):
+    def getNextPlayer(self, showAll=False):
+        '''
+        Default: returns next connected player in player circle
+        showAll = True : returns next player in player circle
+        '''
         # minimum one player should be there in game with player_id set
         # current player is assumed to be myself
         all_players = GamePlayer.objects.filter(
@@ -124,8 +135,12 @@ class ChatConsumer(WebsocketConsumer):
         self_id = self.game_player.player_id
         all_players = all_players.annotate(
             distance=(F('player_id')-self_id+player_count) % player_count)
-        result = all_players.filter(
-            ~Q(distance=0) & Q(disconnected=False)).order_by('distance').first()
+        if showAll:
+            result = all_players.filter(
+                ~Q(distance=0)).order_by('distance').first()
+        else:
+            result = all_players.filter(
+                ~Q(distance=0) & Q(disconnected=False)).order_by('distance').first()
         return result
 
     def isItMyTurn(self):
@@ -182,6 +197,11 @@ class ChatConsumer(WebsocketConsumer):
                     self.game_player.cards, last_snapshot.cardsOnTable)
                 currentUser = last_snapshot.lastUser  # The guy whose turn is next
                 loser = self.game_player  # the guy who lost the bluff
+                # Check if He has no cards left
+                if last_snapshot.lastUser.cards == '0'*156:
+                    # He is the winner
+                    Game.objects.filter(id=self.game_player.game.id).update(
+                        winner=last_snapshot.lastUser)
             else:
                 # table cards are his
                 last_snapshot.lastUser.cards = self.cardsUnion(
@@ -206,27 +226,50 @@ class ChatConsumer(WebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'playCards',
-                'text': 'sdfasdfasd',
+                'text': 'asdfasd',
+                'bluff_cards': last_snapshot.lastCards,
             }
         )
 
     def skip(self, data):
         if not self.isItMyTurn():
+            print("Not my turn")
             return
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).latest('updated_at')
-        current_snapshot.didSkip=True
+        current_snapshot.didSkip = True
         current_snapshot.save()
+        # Check if next player(connected or not) has no cards left
+        next_joined_player = self.getNextPlayer(showAll=True)
+        if next_joined_player.cards == '0'*156:
+            # next player is winner
+            Game.objects.filter(id=self.game_player.game.id).update(
+                winner=next_joined_player)
+        
+        # Logic to empty the table and start next round
+        # If i'm the last user who played cards
+        if current_snapshot.lastUser == self.game_player:
+            # Empty the table, i begin the next round
+            next_snapshot_data = {
+                'cardsOnTable': '0'*156,
+                'currentUser': self.game_player,
+                'lastUser': None,
+                'currentSet': None,
+                'lastCards': '0'*156,
+            }
+        else: #Whoever is next
+            next_snapshot_data = {
+                'cardsOnTable': current_snapshot.cardsOnTable,
+                'currentUser': self.getNextPlayer(),
+                'lastUser': current_snapshot.lastUser,
+                'lastCards': current_snapshot.lastCards,
+            }
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
-            currentSet=current_snapshot.currentSet,
-            cardsOnTable=current_snapshot.cardsOnTable,
-            lastCards=current_snapshot.lastCards,
-            lastUser=current_snapshot.lastUser,
-            currentUser=self.getNextPlayer(),
             bluffCaller=None,
             bluffSuccessful=None,
             didSkip=None,
+            **next_snapshot_data
         ).save()
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
@@ -264,7 +307,7 @@ class ChatConsumer(WebsocketConsumer):
                     '1')  # Add card to my cards
                 card_list.pop(acquired_card)  # Remove card from card list
             all_player_cards[player_id] = my_cards.decode('utf-8')
-        for i in range(0,156):
+        for i in range(0, 156):
             if all_player_cards[1] == '1' and all_player_cards[2] == '1':
                 print(f'Error at index {i}')
         distribute_serializer = DistributeCardsSerializer(
@@ -287,7 +330,6 @@ class ChatConsumer(WebsocketConsumer):
         '''
         self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         cards = self.game_player.cards
-        print(f'cards from updatecards funct {cards}')
         cardsOnTable = self.game_player.game.gametablesnapshot_set.latest(
             'updated_at').cardsOnTable
         cardsPlayed = text_data['cardsPlayed']
@@ -304,9 +346,6 @@ class ChatConsumer(WebsocketConsumer):
             self.game_player, data={'cards': updatedCards}, partial=True)
         update_player_serializer.is_valid(raise_exception=True)
         update_player_serializer.save()
-        print(cardsPlayed)
-        print(updatedCards)
-        print(updatedCardsOnTable)
         GameTableSnapshot.objects.create(
             game=self.game_player.game,
             currentSet=text_data['set'],
@@ -326,23 +365,10 @@ class ChatConsumer(WebsocketConsumer):
             }
         )
 
-    def getNextPlayer(self):
-        # minimum one player should be there in game with player_id set
-        # current player is assumed to be myself
-        # When not testing Replace above line with follwing to process only connected players
-        all_players = self.game_player.game.gameplayer_set.filter(
-            ~Q(player_id=None) & Q(disconnected=False))
-        player_count = all_players.count()
-        self_id = self.game_player.player_id
-        all_players = all_players.annotate(
-            distance=(F('player_id')-self_id+player_count) % player_count)
-        result = all_players.filter(
-            ~Q(distance=0)).order_by('distance').first()
-        return result
-
     def playCards(self, event):
         self.send(text_data=json.dumps({
-            **self.updateGameState(self.scope['user'].id)
+            **self.updateGameState(self.scope['user'].id),
+            'bluff_cards': event.get('bluff_cards')
         }))
 
     def receive(self, text_data):
