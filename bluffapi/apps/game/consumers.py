@@ -98,7 +98,7 @@ class ChatConsumer(WebsocketConsumer):
         game = Game.objects.prefetch_related(
             'gameplayer_set').get(id=self.game_player.game.id)
         game_players = game.gameplayer_set.order_by('player_id').filter(
-            ~Q(user=user_id))  # filter() To be replaced with line below
+            ~Q(user=user_id) & ~Q(player_id=None))  # filter() To be replaced with line below
         # filter(~Q(user=user_id) && ~Q(player_id=None))#Only return people who have joined
         myself = game.gameplayer_set.get(user=user_id)
         game_table = game.gametablesnapshot_set.latest('updated_at')
@@ -108,6 +108,7 @@ class ChatConsumer(WebsocketConsumer):
             'self': SocketMyselfSerializer(myself).data,
             'game_table': SocketGameTableSerializer(game_table).data,
         }
+        print(json.dumps(game_state, indent=2))
         return game_state
 
     def getNextPlayer(self):
@@ -213,20 +214,29 @@ class ChatConsumer(WebsocketConsumer):
         if not self.isItMyTurn():
             return
         current_snapshot = GameTableSnapshot.objects.filter(
-            game=self.game_player.game).order_by('updated_at')[-1]
-        current_snapshot.update(didSkip=True)
+            game=self.game_player.game).latest('updated_at')
+        current_snapshot.didSkip=True
+        current_snapshot.save()
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
-            currentSet=current_snapshot.current_set,
+            currentSet=current_snapshot.currentSet,
+            cardsOnTable=current_snapshot.cardsOnTable,
             lastCards=current_snapshot.lastCards,
             lastUser=current_snapshot.lastUser,
-            currentUser=self.getNextPlayer,
+            currentUser=self.getNextPlayer(),
             bluffCaller=None,
             bluffSuccessful=None,
             didSkip=None,
         ).save()
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards',
+                'text': 'sdfasdfasd',
+            }
+        )
 
-    def startGame(self):
+    def startGame(self, text_data):
         '''
         start a game
         distribute cards randomly
@@ -254,23 +264,32 @@ class ChatConsumer(WebsocketConsumer):
                     '1')  # Add card to my cards
                 card_list.pop(acquired_card)  # Remove card from card list
             all_player_cards[player_id] = my_cards.decode('utf-8')
+        for i in range(0,156):
+            if all_player_cards[1] == '1' and all_player_cards[2] == '1':
+                print(f'Error at index {i}')
         distribute_serializer = DistributeCardsSerializer(
             data={'all_player_cards': all_player_cards},
             context={'game': self.game_player.game}
         )
         distribute_serializer.is_valid()
         distribute_serializer.save()
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards',
+                'text': 'sdfasdfasd',
+            }
+        )
 
     def updateCards(self, text_data):
         '''
         update cards on table and player cards when card is played
         '''
-        print(text_data)
+        self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         cards = self.game_player.cards
+        print(f'cards from updatecards funct {cards}')
         cardsOnTable = self.game_player.game.gametablesnapshot_set.latest(
             'updated_at').cardsOnTable
-        print(len(cardsOnTable))
-        print(len(cards))
         cardsPlayed = text_data['cardsPlayed']
         updatedCards = ""
         updatedCardsOnTable = ""
@@ -294,12 +313,32 @@ class ChatConsumer(WebsocketConsumer):
             cardsOnTable=updatedCardsOnTable,
             lastCards=cardsPlayed,
             lastUser=self.game_player,
-            currentUser=self.game_player.game.gameplayer_set.get(
-                player_id=text_data['current_user']),
+            currentUser=self.getNextPlayer(),
             bluffCaller=None,
             bluffSuccessful=None,
             didSkip=None
         )
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards',
+                'text': text_data,
+            }
+        )
+
+    def getNextPlayer(self):
+        # minimum one player should be there in game with player_id set
+        # current player is assumed to be myself
+        # When not testing Replace above line with follwing to process only connected players
+        all_players = self.game_player.game.gameplayer_set.filter(
+            ~Q(player_id=None) & Q(disconnected=False))
+        player_count = all_players.count()
+        self_id = self.game_player.player_id
+        all_players = all_players.annotate(
+            distance=(F('player_id')-self_id+player_count) % player_count)
+        result = all_players.filter(
+            ~Q(distance=0)).order_by('distance').first()
+        return result
 
     def playCards(self, event):
         self.send(text_data=json.dumps({
@@ -320,12 +359,3 @@ class ChatConsumer(WebsocketConsumer):
                 'message': 'Invalid Action'
             }))
         )(dict_data)
-        if dict_data['action'] == 'play':
-            print(2)
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
-                {
-                    'type': 'playCards',
-                    'text': text_data,
-                }
-            )

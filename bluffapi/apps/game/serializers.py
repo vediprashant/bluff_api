@@ -158,13 +158,23 @@ class SocketMyselfSerializer(serializers.ModelSerializer):
 
 class SocketGameTableSerializer(serializers.ModelSerializer):
     card_count = serializers.SerializerMethodField()
+    current_player_id = serializers.SerializerMethodField()
+    last_player_id = serializers.SerializerMethodField()
 
     class Meta:
         model = GameTableSnapshot
-        fields = ['currentSet', 'card_count']
+        fields = ['currentSet', 'card_count', 'current_player_id', 'last_player_id']
 
     def get_card_count(self, obj):
         return obj.cardsOnTable.count('1')
+
+    def get_current_player_id(self,obj):
+        return obj.currentUser.player_id
+
+    def get_last_player_id(self,obj):
+        if obj.lastUser:
+            return obj.lastUser.player_id
+        return None
 
 
 class DistributeCardsSerializer(serializers.Serializer):
@@ -175,6 +185,7 @@ class DistributeCardsSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         game = self.context['game']
+        game.started = True
         last_table_snapshot = game.gametablesnapshot_set.latest('updated_at')
         with transaction.atomic():
             for player_id, cards in validated_data['all_player_cards'].items():
@@ -184,6 +195,7 @@ class DistributeCardsSerializer(serializers.Serializer):
             # Clear Game Table
             last_table_snapshot.cardsOnTable = '0'*156
             last_table_snapshot.save()
+            game.save()
         return game
 
     def validate(self, data):
