@@ -182,8 +182,8 @@ class ChatConsumer(WebsocketConsumer):
         or i'm next player
         '''
         # if current turn or current turn + 1
-        last_snapshot = self.game_player.game.gametablesnapshot_set.order_by(
-            'updated_at').last()
+        last_snapshot = GameTableSnapshot.objects.filter(
+            game=self.game_player.game).latest('updated_at')
         # check if im current user and call bluff on last player who played
         # unless that last player is myself as well
         # update gamestate
@@ -245,7 +245,7 @@ class ChatConsumer(WebsocketConsumer):
             # next player is winner
             Game.objects.filter(id=self.game_player.game.id).update(
                 winner=next_joined_player)
-        
+
         # Logic to empty the table and start next round
         # If i'm the last user who played cards
         if current_snapshot.lastUser == self.game_player:
@@ -257,7 +257,7 @@ class ChatConsumer(WebsocketConsumer):
                 'currentSet': None,
                 'lastCards': '0'*156,
             }
-        else: #Whoever is next
+        else:  # Whoever is next
             next_snapshot_data = {
                 'cardsOnTable': current_snapshot.cardsOnTable,
                 'currentUser': self.getNextPlayer(),
