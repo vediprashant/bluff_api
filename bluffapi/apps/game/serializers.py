@@ -122,9 +122,16 @@ class SocketInitSerializer(serializers.Serializer):
 
 
 class SocketGameSerializer(serializers.ModelSerializer):
+    winner_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Game
         fields = '__all__'
+
+    def get_winner_name(self, obj):
+        if obj.winner:
+            return obj.winner.name
+        return None
 
 
 class GamePlayerUserSerializer(serializers.ModelSerializer):
@@ -171,7 +178,9 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         return obj.cardsOnTable.count('1')
 
     def get_current_player_id(self, obj):
-        return obj.currentUser.player_id
+        if obj.currentUser:
+            return obj.currentUser.player_id
+        return None
 
     def get_last_player_id(self, obj):
         if obj.lastUser:

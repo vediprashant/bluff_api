@@ -198,16 +198,16 @@ class ChatConsumer(WebsocketConsumer):
                 currentUser = last_snapshot.lastUser  # The guy whose turn is next
                 loser = self.game_player  # the guy who lost the bluff
                 # Check if He has no cards left
-                if last_snapshot.lastUser.cards == '0'*156:
-                    # He is the winner
-                    Game.objects.filter(id=self.game_player.game.id).update(
-                        winner=last_snapshot.lastUser)
             else:
                 # table cards are his
                 last_snapshot.lastUser.cards = self.cardsUnion(
                     last_snapshot.lastUser.cards, last_snapshot.cardsOnTable)
                 currentUser = self.game_player  # The guy whose turn is next
                 loser = last_snapshot.lastUser  # the guy who lost the bluff
+            if last_snapshot.lastUser.cards == '0'*156:
+                # He is the winner
+                Game.objects.filter(id=self.game_player.game.id).update(
+                    winner=last_snapshot.lastUser.user)
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
                 currentSet=None,
@@ -228,6 +228,9 @@ class ChatConsumer(WebsocketConsumer):
                 'type': 'playCards',
                 'text': 'asdfasd',
                 'bluff_cards': last_snapshot.lastCards,
+                'action': 'Show',
+                'bluffLooser': loser.user.name,
+                'last_player_turn': self.game_player.player_id
             }
         )
 
@@ -241,10 +244,10 @@ class ChatConsumer(WebsocketConsumer):
         current_snapshot.save()
         # Check if next player(connected or not) has no cards left
         next_joined_player = self.getNextPlayer(showAll=True)
-        if next_joined_player.cards == '0'*156:
+        if self.game_player.game.started == True and next_joined_player.cards == '0'*156:
             # next player is winner
             Game.objects.filter(id=self.game_player.game.id).update(
-                winner=next_joined_player)
+                winner=next_joined_player.user)
 
         # Logic to empty the table and start next round
         # If i'm the last user who played cards
@@ -276,6 +279,8 @@ class ChatConsumer(WebsocketConsumer):
             {
                 'type': 'playCards',
                 'text': 'sdfasdfasd',
+                'action': 'skip',
+                'last_player_turn': self.game_player.player_id
             }
         )
 
@@ -330,15 +335,22 @@ class ChatConsumer(WebsocketConsumer):
         '''
         self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         cards = self.game_player.cards
-        cardsOnTable = self.game_player.game.gametablesnapshot_set.latest(
-            'updated_at').cardsOnTable
+        game_table = self.game_player.game.gametablesnapshot_set.latest(
+            'updated_at')
+        cardsOnTable = game_table.cardsOnTable
+        if game_table.lastUser is not None and game_table.lastUser.cards == '0'*156:
+            # He is the winner
+            Game.objects.filter(id=self.game_player.game.id).update(
+                winner=game_table.lastUser.user)
         cardsPlayed = text_data['cardsPlayed']
         updatedCards = ""
         updatedCardsOnTable = ""
+        playedCardCount = 0
         for ele in range(len(cards)):
             if cardsPlayed[ele] == '1':
                 updatedCards += '0'
                 updatedCardsOnTable += '1'
+                playedCardCount += 1
             else:
                 updatedCards += cards[ele]
                 updatedCardsOnTable += cardsOnTable[ele]
@@ -362,13 +374,18 @@ class ChatConsumer(WebsocketConsumer):
             {
                 'type': 'playCards',
                 'text': text_data,
+                'action': f"played {playedCardCount} card",
+                'last_player_turn': self.game_player.player_id,
             }
         )
 
     def playCards(self, event):
         self.send(text_data=json.dumps({
             **self.updateGameState(self.scope['user'].id),
-            'bluff_cards': event.get('bluff_cards')
+            'bluff_cards': event.get('bluff_cards'),
+            'action': event.get('action'),
+            'last_player_turn': event.get('last_player_turn'),
+            'bluffLooser': event.get('bluffLooser'),
         }))
 
     def receive(self, text_data):
