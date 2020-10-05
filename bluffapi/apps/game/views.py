@@ -66,6 +66,8 @@ class ListGames(ListAPIView):
         queryset = queryset.filter(started=True)
         if 'completed' in filters:
             queryset = queryset.filter(~Q(winner=None))
+        else:
+            queryset = queryset.filter(Q(winner=None))
         queryset = queryset.order_by('created_at')
         return queryset
 
