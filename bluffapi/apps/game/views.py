@@ -5,10 +5,15 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 from apps.game.models import Game, GamePlayer
-from apps.game.serializers import CreateGameSerializer, CreateGamePlayerSerializer, GameSerializer
+from apps.game.serializers import (
+    CreateGameSerializer,
+    CreateGamePlayerSerializer,
+    GameSerializer,
+    TimelineSerializer,
+)
 
 # Create your views here.
 
@@ -68,4 +73,25 @@ class ListGames(ListAPIView):
             queryset = queryset.filter(~Q(winner=None))
         queryset = queryset.order_by('created_at')
         return queryset
-        
+
+
+class TimelineStats(APIView):
+    '''
+    Shows User stats between two given dates
+    '''
+    permission_classes = [IsAuthenticated]
+
+    def post(self, *args, **kwargs):
+        serializer = TimelineSerializer(data=self.request.data, context={
+                                        'user': self.request.user})
+        serializer.is_valid(raise_exception=True)
+        def graph(queryset):
+            graph = []
+            for index, row in enumerate(queryset):
+                graph.append((index+1, row.created_at))
+            return graph
+        return Response({
+            'successful_bluffs': graph(serializer.data['successful_bluffs']),
+            'unsuccessful_bluffs': graph(serializer.data['unsuccessful_bluffs']),
+            'games_played': graph(serializer.data['all_game_players'])
+        })

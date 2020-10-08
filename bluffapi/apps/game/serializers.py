@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 
 from rest_framework import serializers, exceptions
 
@@ -229,3 +230,32 @@ class DistributeCardsSerializer(serializers.Serializer):
                 raise Exception(
                     f'Invalid cards config set for player id {player_id}')
         return data
+
+
+class TimelineSerializer(serializers.Serializer):
+    start_date = serializers.DateTimeField()
+    end_date = serializers.DateTimeField()
+
+    def validate(self, data):
+        if data['start_date'] >= data['end_date']:
+            raise serializers.ValidationError(
+                'Start date cannot be later than end date')
+        return data
+
+    def to_representation(self, instance):
+        super().to_representation(instance)
+
+        all_game_players = self.context['user'].gameplayer_set.filter(
+            Q(game__created_at__gt=instance['start_date']) 
+            & Q(game__created_at__lt=instance['end_date'])
+            & ~Q(player_id=None))
+        bluff_caller_instances = GameTableSnapshot.objects.filter(
+            bluffCaller__in=all_game_players
+        )
+        successful_bluffs = bluff_caller_instances.filter(bluffSuccessful=True)
+        unsuccessful_bluffs = bluff_caller_instances.filter(bluffSuccessful=False)
+
+        instance['successful_bluffs'] = successful_bluffs
+        instance['unsuccessful_bluffs'] = unsuccessful_bluffs
+        instance['all_game_players'] = all_game_players
+        return instance
