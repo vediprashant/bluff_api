@@ -334,6 +334,9 @@ class ChatConsumer(WebsocketConsumer):
         '''
         update cards on table and player cards when card is played
         '''
+        if not self.isItMyTurn():
+            print("Not my turn")
+            return
         self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         cards = self.game_player.cards
         game_table = self.game_player.game.gametablesnapshot_set.latest(
