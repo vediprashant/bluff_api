@@ -13,6 +13,7 @@ from apps.game.serializers import (
     CreateGamePlayerSerializer,
     GameSerializer,
     TimelineSerializer,
+    InvitedPlayerSerializer,
 )
 
 # Create your views here.
@@ -95,3 +96,19 @@ class TimelineStats(APIView):
             'unsuccessful_bluffs': graph(serializer.data['unsuccessful_bluffs']),
             'games_played': graph(serializer.data['all_game_players'])
         })
+
+
+class ListInvitedPlayers(ListAPIView):
+    '''
+    Returns all invited players
+    '''
+    permission_classes = [IsAuthenticated]
+
+    queryset = GamePlayer.objects.all()
+    serializer_class = InvitedPlayerSerializer
+
+    def get(self, request, *args, **kwargs):
+        serializer = InvitedPlayerSerializer(data=kwargs, context={'user': request.user})
+        serializer.is_valid(raise_exception=True)
+        self.queryset = self.queryset.filter(game=kwargs['game_id'])
+        return super().get(self, request, *args, **kwargs)

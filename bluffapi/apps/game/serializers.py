@@ -259,3 +259,21 @@ class TimelineSerializer(serializers.Serializer):
         instance['unsuccessful_bluffs'] = unsuccessful_bluffs
         instance['all_game_players'] = all_game_players
         return instance
+
+class InvitedPlayerSerializer(serializers.ModelSerializer):
+    game_id = serializers.IntegerField() 
+    email = serializers.SerializerMethodField()
+    class Meta:
+        model = GamePlayer
+        fields = ['email', 'game_id']
+        extra_kwargs = {
+            'game_id': { 'write_only': True }
+        }
+
+    def validate(self, attrs):
+        if not Game.objects.filter(id=attrs['game_id'], owner=self.context['user']).exists():
+            raise serializers.ValidationError('User is not the owner of game')
+        return attrs
+
+    def get_email(self, obj):
+        return obj.user.email
