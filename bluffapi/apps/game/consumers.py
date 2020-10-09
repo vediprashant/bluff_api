@@ -115,7 +115,6 @@ class ChatConsumer(WebsocketConsumer):
             'self': SocketMyselfSerializer(myself).data,
             'game_table': SocketGameTableSerializer(game_table).data,
         }
-        print(json.dumps(game_state, indent=2))
         return game_state
 
     def getNextPlayer(self, showAll=False):
@@ -146,7 +145,7 @@ class ChatConsumer(WebsocketConsumer):
     def isItMyTurn(self):
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).order_by('updated_at').last()
-        if current_snapshot.currentUser.disconnected == True:
+        if current_snapshot.currentUser is not None and current_snapshot.currentUser.disconnected == True:
             if self.game_player == self.getNextPlayer():
                 return True
         elif current_snapshot.currentUser == self.game_player:
@@ -182,6 +181,7 @@ class ChatConsumer(WebsocketConsumer):
         or i'm next player
         '''
         # if current turn or current turn + 1
+        self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         last_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).latest('updated_at')
         # check if im current user and call bluff on last player who played
@@ -191,7 +191,7 @@ class ChatConsumer(WebsocketConsumer):
             or self.getNextPlayer == self.game_player) \
                 and last_snapshot.lastUser != self.game_player:
             # Check last cards and currentset
-            if self.fromSet(last_snapshot.currentSet, last_snapshot.cardsOnTable):
+            if self.fromSet(last_snapshot.currentSet, last_snapshot.lastCards):
                 # table cards are mine
                 self.game_player.cards = self.cardsUnion(
                     self.game_player.cards, last_snapshot.cardsOnTable)
