@@ -100,7 +100,7 @@ class TimelineStats(APIView):
 
 class ListInvitedPlayers(ListAPIView):
     '''
-    Returns all invited players
+    Returns all invited players, except owner
     '''
     permission_classes = [IsAuthenticated]
 
@@ -110,5 +110,6 @@ class ListInvitedPlayers(ListAPIView):
     def get(self, request, *args, **kwargs):
         serializer = InvitedPlayerSerializer(data=kwargs, context={'user': request.user})
         serializer.is_valid(raise_exception=True)
-        self.queryset = self.queryset.filter(game=kwargs['game_id'])
+        owner = Game.objects.get(id=kwargs['game_id']).owner
+        self.queryset = self.queryset.filter(game=kwargs['game_id']).exclude(id=owner.id)
         return super().get(self, request, *args, **kwargs)
