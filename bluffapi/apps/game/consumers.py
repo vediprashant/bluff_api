@@ -266,6 +266,7 @@ class ChatConsumer(WebsocketConsumer):
                 'currentUser': self.getNextPlayer(),
                 'lastUser': current_snapshot.lastUser,
                 'lastCards': current_snapshot.lastCards,
+                'currentSet': current_snapshot.currentSet,
             }
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
