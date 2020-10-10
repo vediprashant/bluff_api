@@ -115,8 +115,6 @@ class SocketInitSerializer(serializers.Serializer):
         game = Game.objects.filter(id=value)
         if not game.exists():
             raise exceptions.ValidationError('Game does not exist')
-        if game.started:
-            raise exceptions.ValidationError('Game already started, cannot join')
         return value
 
     def validate_user(self, value):
@@ -129,7 +127,8 @@ class SocketInitSerializer(serializers.Serializer):
             game_id=data['game'], user_id=data['user']).first()
         if game_player is None:
             raise exceptions.ValidationError('User not a part of given game')
-
+        elif game_player.player_id is None and game_player.game.started:
+            raise exceptions.ValidationError('Game already started, cannot join')
         data['game_player'] = game_player
         return data
 

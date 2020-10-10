@@ -89,7 +89,6 @@ class ChatConsumer(WebsocketConsumer):
         
 
     def disconnect(self, close_code):
-        print(f'disconnect called with close code {close_code}')
         if self.game_player:
             # Check if he was current user
             last_snapshot = GameTableSnapshot.objects.filter(
@@ -102,7 +101,13 @@ class ChatConsumer(WebsocketConsumer):
                 self.game_player, data={'disconnected': True}, partial=True)
             update_serializer.is_valid(raise_exception=True)
             update_serializer.save()
-            print('disconnect called')
+            print('informing everyone of disconnect')
+            async_to_sync(self.channel_layer.group_send)(
+                self.room_group_name,
+                {
+                    'type': 'playCards'
+                }
+            )
             self.close()
 
     def updateGameState(self, user_id):
