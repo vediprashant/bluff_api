@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework import status
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
@@ -34,7 +35,7 @@ class CreateGame(APIView):
             data=request.data, context=request.user)
         serializer.is_valid(raise_exception=True)
         game = serializer.save()
-        return Response(game.id)
+        return Response({ 'id':game.id }, status=status.HTTP_201_CREATED)
 
 
 class CreateGamePlayer(APIView):
@@ -65,13 +66,14 @@ class ListGames(ListAPIView):
         user = self.request.user
         filters = self.request.GET.getlist('filters')
         queryset = Game.objects.filter(
-            id__in=user.gameplayer_set.all().values('game')
+            id__in=user.gameplayer_set.filter(~Q(player_id=None)).values('game')
         )
         if 'owner' in filters:
             queryset = queryset.filter(owner=user)
-        queryset = queryset.filter(started=True)
         if 'completed' in filters:
             queryset = queryset.filter(~Q(winner=None))
+        else:
+            queryset = queryset.filter(Q(winner=None))
         queryset = queryset.order_by('created_at')
         return queryset
 
@@ -111,5 +113,5 @@ class ListInvitedPlayers(ListAPIView):
         serializer = InvitedPlayerSerializer(data=kwargs, context={'user': request.user})
         serializer.is_valid(raise_exception=True)
         owner = Game.objects.get(id=kwargs['game_id']).owner
-        self.queryset = self.queryset.filter(game=kwargs['game_id']).exclude(id=owner.id)
+        self.queryset = self.queryset.filter(game=kwargs['game_id']).exclude(user_id=owner.id)
         return super().get(self, request, *args, **kwargs)
