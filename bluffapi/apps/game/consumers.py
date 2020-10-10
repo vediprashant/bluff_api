@@ -79,6 +79,14 @@ class ChatConsumer(WebsocketConsumer):
                 'init_success': False,
                 'message': e.__str__()
             }))
+            self.close()
+        async_to_sync(self.channel_layer.group_send)(
+            self.room_group_name,
+            {
+                'type': 'playCards'
+            }
+        )
+        
 
     def disconnect(self, close_code):
         print(f'disconnect called with close code {close_code}')

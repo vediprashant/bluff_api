@@ -20,6 +20,14 @@ class CreateGameSerializer(serializers.Serializer):
     class Meta:
         fields = ['decks']
 
+    def initial_cards(self, decks):
+        if decks == 1:
+            return '100'*52
+        elif decks == 2:
+            return '110'*52
+        else:
+            return '111'*52
+
     def create(self, validated_data):
         with transaction.atomic():
             game = Game.objects.create(
@@ -28,7 +36,7 @@ class CreateGameSerializer(serializers.Serializer):
                 winner=None,
                 decks=validated_data['decks']
             )
-            GamePlayer.objects.create(
+            myself = GamePlayer.objects.create(
                 user=self.context,
                 game=game,
                 player_id=1,
@@ -39,15 +47,15 @@ class CreateGameSerializer(serializers.Serializer):
             GameTableSnapshot.objects.create(
                 game=game,
                 currentSet=None,
-                cardsOnTable='1'*game.decks*52+'0' *
-                (3-game.decks)*52,  # All cards on table
-                lastCards='0'*156,  # no last cards
+                cardsOnTable=self.initial_cards(game.decks), #All cards on table
+                lastCards='0'*156, #no last cards
                 lastUser=None,
-                currentUser=None,
+                currentUser=myself,
                 bluffCaller=None,
                 bluffSuccessful=None,
                 didSkip=None
             )
+
         return game
 
 
@@ -104,8 +112,11 @@ class SocketInitSerializer(serializers.Serializer):
         checks if game exists
         returns game object
         '''
-        if not Game.objects.filter(id=value).exists():
+        game = Game.objects.filter(id=value)
+        if not game.exists():
             raise exceptions.ValidationError('Game does not exist')
+        if game.started:
+            raise exceptions.ValidationError('Game already started, cannot join')
         return value
 
     def validate_user(self, value):
@@ -118,6 +129,7 @@ class SocketInitSerializer(serializers.Serializer):
             game_id=data['game'], user_id=data['user']).first()
         if game_player is None:
             raise exceptions.ValidationError('User not a part of given game')
+
         data['game_player'] = game_player
         return data
 
