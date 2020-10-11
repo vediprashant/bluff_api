@@ -62,6 +62,7 @@ class ChatConsumer(WebsocketConsumer):
                     'disconnected': False,
                     'player_id': last_player_id+1
                 }
+
             else:
                 data_update = {
                     'disconnected': False
@@ -86,7 +87,6 @@ class ChatConsumer(WebsocketConsumer):
                 'type': 'playCards'
             }
         )
-        
 
     def disconnect(self, close_code):
         if self.game_player:
@@ -219,6 +219,7 @@ class ChatConsumer(WebsocketConsumer):
                 loser = last_snapshot.lastUser  # the guy who lost the bluff
             if last_snapshot.lastUser.cards == '0'*156:
                 # He is the winner
+                currentUser = None
                 Game.objects.filter(id=self.game_player.game.id).update(
                     winner=last_snapshot.lastUser.user)
             new_snapshot = GameTableSnapshot(
@@ -259,6 +260,8 @@ class ChatConsumer(WebsocketConsumer):
         next_joined_player = self.getNextPlayer(showAll=True)
         if self.game_player.game.started == True and next_joined_player.cards == '0'*156:
             # next player is winner
+            current_snapshot.currentUser = None
+            current_snapshot.save()
             Game.objects.filter(id=self.game_player.game.id).update(
                 winner=next_joined_player.user)
 
@@ -355,8 +358,10 @@ class ChatConsumer(WebsocketConsumer):
         game_table = self.game_player.game.gametablesnapshot_set.latest(
             'updated_at')
         cardsOnTable = game_table.cardsOnTable
+        nextUser = self.getNextPlayer()
         if game_table.lastUser is not None and game_table.lastUser.cards == '0'*156:
             # He is the winner
+            nextUser = None
             Game.objects.filter(id=self.game_player.game.id).update(
                 winner=game_table.lastUser.user)
         cardsPlayed = text_data['cardsPlayed']
