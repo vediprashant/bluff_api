@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework import status
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import CreateGameSerializer, CreateGamePlayerSerializer, GameSerializer
@@ -39,8 +40,8 @@ class CreateGamePlayer(APIView):
         try:
             serializer.save()
         except IntegrityError as e:
-            return Response({"msg": "User already invited for the game"}, status=400)
-        return Response(status=201)
+            return Response({'msg': 'User already invited for the game'}, status=400)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class ListGames(ListAPIView):
@@ -65,4 +66,3 @@ class ListGames(ListAPIView):
             queryset = queryset.filter(Q(winner=None))
         queryset = queryset.order_by('created_at')
         return queryset
-

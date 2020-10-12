@@ -20,7 +20,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         model = Game
         fields = ['decks', 'id']
         extra_kwargs = {
-            'decks': { 'write_only': True }
+            'decks': {'write_only': True}
         }
 
     def create(self, validated_data):
@@ -60,18 +60,18 @@ class CreateGamePlayerSerializer(serializers.Serializer):
     game = serializers.IntegerField()
 
     def validate(self, data):
-        email = data.get('email')
+        email = data['email']
         user = accounts_model.User.objects.filter(email=email).first()
         if user:
             data['user'] = user
         else:
-            msg = "User not found, Please provide Valid email or ask the user to Sign Up"
+            msg = 'User not found, Please provide Valid email or ask the user to Sign Up'
             raise exceptions.ValidationError(msg)
-        game = Game.objects.filter(pk=data.get('game')).first()
+        game = Game.objects.filter(pk=data['game']).first()
         if game and game.owner == self.context:
             data['game'] = game
         else:
-            msg = "Game id not found, Please provide Valid Input"
+            msg = 'Game id not found, Please provide Valid Input'
             raise exceptions.ValidationError(msg)
         return super(CreateGamePlayerSerializer, self).validate(data)
 
@@ -81,7 +81,8 @@ class CreateGamePlayerSerializer(serializers.Serializer):
         instance = GamePlayer.objects.create(**validated_data)
         return instance
 
+
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ['id','created_at']
+        fields = ['id', 'created_at']

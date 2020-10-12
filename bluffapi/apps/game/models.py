@@ -21,7 +21,7 @@ class Game(common_models.TimeStampModel):
                               on_delete=models.CASCADE, related_name='owner')
 
     def __str__(self):
-        return f"{self.owner.name}({self.id})"
+        return f'{self.owner.name}({self.id})'
 
 
 class GamePlayer(common_models.TimeStampModel):
@@ -69,4 +69,4 @@ class GameTableSnapshot(common_models.TimeStampModel):
     didSkip = models.NullBooleanField(null=True)
 
     def __str__(self):
-        return f"{self.game}"
+        return f'{self.game}'
