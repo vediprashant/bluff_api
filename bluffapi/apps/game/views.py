@@ -16,11 +16,13 @@ from apps.game.serializers import CreateGameSerializer, CreateGamePlayerSerializ
 class CreateGame(CreateAPIView):
     '''
     Creates a new game
+    takes number of decks as input
     '''
     permission_classes = [IsAuthenticated]
     serializer_class = CreateGameSerializer
 
     def get_context_data(self, **kwargs):
+        super().get_context_data(self, **kwargs)
         return self.request.user
 
 
