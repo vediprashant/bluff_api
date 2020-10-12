@@ -220,7 +220,7 @@ class TestCallBluff(InitGame):
             game=self.game).order_by('updated_at').last()
         assert new_snapshot.cards_on_table == '0'*156
         assert new_snapshot.current_user == self.self_player
-        assert new_snapshot.bluffCaller == self.self_player
+        assert new_snapshot.bluff_caller == self.self_player
         assert new_snapshot.bluffSuccessful == True
         assert new_snapshot.last_user is None
         assert new_snapshot.last_cards == '0'*156

@@ -243,7 +243,7 @@ class ChatConsumer(WebsocketConsumer):
                 last_cards='0'*156,
                 last_user=None,
                 current_user=current_user,
-                bluffCaller=self.game_player,
+                bluff_caller=self.game_player,
                 bluffSuccessful=True,
                 didSkip=None,
             )
@@ -300,7 +300,7 @@ class ChatConsumer(WebsocketConsumer):
             }
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
-            bluffCaller=None,
+            bluff_caller=None,
             bluffSuccessful=None,
             didSkip=None,
             **next_snapshot_data
@@ -401,7 +401,7 @@ class ChatConsumer(WebsocketConsumer):
             last_cards=cardsPlayed,
             last_user=self.game_player,
             current_user=self.getNextPlayer(),
-            bluffCaller=None,
+            bluff_caller=None,
             bluffSuccessful=None,
             didSkip=None
         )

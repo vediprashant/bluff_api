@@ -51,7 +51,7 @@ class CreateGameSerializer(serializers.Serializer):
                 last_cards='0'*156, #no last cards
                 last_user=None,
                 current_user=myself,
-                bluffCaller=None,
+                bluff_caller=None,
                 bluffSuccessful=None,
                 didSkip=None
             )
@@ -265,7 +265,7 @@ class TimelineSerializer(serializers.Serializer):
             & Q(game__created_at__lt=instance['end_date'])
             & ~Q(player_id=None))
         bluff_caller_instances = GameTableSnapshot.objects.filter(
-            bluffCaller__in=all_game_players
+            bluff_caller__in=all_game_players
         )
         successful_bluffs = bluff_caller_instances.filter(bluffSuccessful=True)
         unsuccessful_bluffs = bluff_caller_instances.filter(bluffSuccessful=False)

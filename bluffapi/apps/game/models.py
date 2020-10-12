@@ -63,8 +63,8 @@ class GameTableSnapshot(common_models.TimeStampModel):
         related_name='current_user',
         null=True,
     )
-    bluffCaller = models.ForeignKey(
-        GamePlayer, on_delete=models.CASCADE, blank=True, null=True, related_name='bluffCaller')
+    bluff_caller = models.ForeignKey(
+        GamePlayer, on_delete=models.CASCADE, blank=True, null=True, related_name='bluff_caller')
     bluffSuccessful = models.NullBooleanField(null=True)
     didSkip = models.NullBooleanField(null=True)
 
