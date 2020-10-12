@@ -1,11 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import (
-    BaseUserManager, AbstractBaseUser
+    BaseUserManager, AbstractBaseUser, PermissionsMixin
 )
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, admin=False):
+    '''
+    User Manager for creating users and superusers
+    '''
+    def create_user(self, email, password=None, **kwargs):
         '''
         Creates and saves a user with given email, name and password
         '''
@@ -14,68 +17,64 @@ class UserManager(BaseUserManager):
 
         user = self.model(
             email=self.normalize_email(email),
-            admin=admin,
+            **kwargs
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password):
+    def create_superuser(self, email, password, **kwargs):
         '''
         Creates and saves a superuser with the given email and password.
         '''
+        kwargs['is_superuser'] = True
         user = self.create_user(
             email,
             password=password,
-            admin=True,
+            **kwargs
         )
         return user
 
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser, PermissionsMixin):
+    '''
+    User model for player
+    '''
     email = models.EmailField(
-        verbose_name='email address',
         max_length=255,
         unique=True,
+        help_text='Email address'
     )
     name = models.CharField(
         max_length=255,
-        null=False,
-        blank=False,
+        help_text='Name'
     )
-    admin = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['name']
     objects = UserManager()
 
     @property
     def is_staff(self):
-        "Is the user a member of staff?"
-        return self.admin
-
-    @property
-    def is_admin(self):
-        "Is the user a admin member?"
-        return self.admin
-
-    def has_module_perms(self, app_label):
-        "Does the user have permissions to view the app `app_label`?"
-        # Simplest possible answer: Yes, always
-        return True
-
-    def has_perm(self, perm, obj=None):
-        "Does the user have a specific permission?"
-        # Simplest possible answer: Yes, always
-        return True
+        '''
+        Returns True if is_superuser is True
+        '''
+        if self.is_superuser:
+            return True
+        else:
+            return False
 
     def get_full_name(self):
-        # The user is identified by their email address
-        return self.email
+        '''
+        Returns Full Name of user i.e name
+        '''
+        return self.name
 
     def get_short_name(self):
-        # The user is identified by their email address
-        return self.email
+        '''
+        Returns Short name of user i.e name
+        '''
+        return self.name
 
     def __str__(self):
         return self.email

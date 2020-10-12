@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 
 from rest_framework import viewsets, permissions
-from rest_framework.views import APIView
+from rest_framework.generics import CreateAPIView
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -27,7 +27,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return accounts_serializers.UserSerializer
 
 
-class Login(APIView):
+class Login(CreateAPIView):
     def post(self, request):
         loginSerializer = LoginSerializer(data=request.data)
         loginSerializer.is_valid(raise_exception=True)
@@ -42,7 +42,7 @@ class Login(APIView):
                 status=status.HTTP_401_UNAUTHORIZED)
 
 
-class LogoutView(APIView):
+class LogoutView(CreateAPIView):
     """
     It deletes the token and logsout user
     """
@@ -52,4 +52,4 @@ class LogoutView(APIView):
     def post(self, request):
         token_object = Token.objects.filter(user=request.user)
         token_object.delete()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
