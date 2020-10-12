@@ -74,7 +74,7 @@ class ChatConsumer(WebsocketConsumer):
                 print('nobody else connected')
                 #check if game is started
                 game = Game.objects.get(id=self.game_player.game.id)
-                if game.started:
+                if game.started and game.winner is None:
                     last_snapshot = GameTableSnapshot.objects.filter(
                         game=self.game_player.game).latest('updated_at')
                     last_snapshot.currentUser = self.game_player
