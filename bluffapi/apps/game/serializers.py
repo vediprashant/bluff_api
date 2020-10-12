@@ -53,7 +53,7 @@ class CreateGameSerializer(serializers.Serializer):
                 current_user=myself,
                 bluff_caller=None,
                 bluff_successful=None,
-                didSkip=None
+                did_skip=None
             )
 
         return game

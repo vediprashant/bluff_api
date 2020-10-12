@@ -245,7 +245,7 @@ class ChatConsumer(WebsocketConsumer):
                 current_user=current_user,
                 bluff_caller=self.game_player,
                 bluff_successful=True,
-                didSkip=None,
+                did_skip=None,
             )
             with transaction.atomic():
                 loser.save()  # The guy whose turn is next
@@ -268,7 +268,7 @@ class ChatConsumer(WebsocketConsumer):
             return
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).latest('updated_at')
-        current_snapshot.didSkip = True
+        current_snapshot.did_skip = True
         current_snapshot.save()
         # Check if next player(connected or not) has no cards left
         next_joined_player = self.getNextPlayer(showAll=True)
@@ -302,7 +302,7 @@ class ChatConsumer(WebsocketConsumer):
             game=self.game_player.game,
             bluff_caller=None,
             bluff_successful=None,
-            didSkip=None,
+            did_skip=None,
             **next_snapshot_data
         ).save()
         async_to_sync(self.channel_layer.group_send)(
@@ -403,7 +403,7 @@ class ChatConsumer(WebsocketConsumer):
             current_user=self.getNextPlayer(),
             bluff_caller=None,
             bluff_successful=None,
-            didSkip=None
+            did_skip=None
         )
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
