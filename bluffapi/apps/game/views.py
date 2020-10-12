@@ -75,7 +75,6 @@ class ListGames(ListAPIView):
         else:
             queryset = queryset.filter(Q(winner=None))
         queryset = queryset.order_by('created_at')
-        print(queryset[0].created_at)
         return queryset
 
 

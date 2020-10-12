@@ -103,6 +103,7 @@ class ChatConsumer(WebsocketConsumer):
 
     def disconnect(self, close_code):
         if self.game_player:
+            self.game_player = GamePlayer.objects.get(id=self.game_player.id)
             # Check if he was current user
             last_snapshot = GameTableSnapshot.objects.filter(
                 game=self.game_player.game).latest('updated_at')
