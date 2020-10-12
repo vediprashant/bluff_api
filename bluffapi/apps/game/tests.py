@@ -188,7 +188,7 @@ class TestCallBluff(InitGame):
         GameTableSnapshot.objects.filter(id=self.gts.id).update(
             cards_on_table='101101'*26,  # random cards on table
             last_cards='1'+'0'*155,  # just one card, that doesnt belong to current set
-            currentUser=self.self_player,
+            current_user=self.self_player,
             last_user=self.other_players[6],
             current_set=9,
         )
@@ -219,7 +219,7 @@ class TestCallBluff(InitGame):
         new_snapshot = GameTableSnapshot.objects.filter(
             game=self.game).order_by('updated_at').last()
         assert new_snapshot.cards_on_table == '0'*156
-        assert new_snapshot.currentUser == self.self_player
+        assert new_snapshot.current_user == self.self_player
         assert new_snapshot.bluffCaller == self.self_player
         assert new_snapshot.bluffSuccessful == True
         assert new_snapshot.last_user is None

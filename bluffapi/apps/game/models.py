@@ -57,10 +57,10 @@ class GameTableSnapshot(common_models.TimeStampModel):
         related_name='last_user',
         null=True,
     )
-    currentUser = models.ForeignKey(
+    current_user = models.ForeignKey(
         GamePlayer,
         on_delete=models.CASCADE,
-        related_name='currentUser',
+        related_name='current_user',
         null=True,
     )
     bluffCaller = models.ForeignKey(
