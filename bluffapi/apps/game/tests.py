@@ -78,7 +78,7 @@ class InitGame:
         self.gts = G(
             GameTableSnapshot,
             game=self.game,
-            cardsOnTable=f"{'1'*52*self.game.decks}{'0'*52*(3-self.game.decks)}"
+            cards_on_table=f"{'1'*52*self.game.decks}{'0'*52*(3-self.game.decks)}"
         )
         self.self_player = G(GamePlayer, game=self.game,
                              user=self.user, cards='0'*156, player_id=1)
@@ -186,7 +186,7 @@ class TestCallBluff(InitGame):
 
         # set game table snapshot
         GameTableSnapshot.objects.filter(id=self.gts.id).update(
-            cardsOnTable='101101'*26,  # random cards on table
+            cards_on_table='101101'*26,  # random cards on table
             lastCards='1'+'0'*155,  # just one card, that doesnt belong to current set
             currentUser=self.self_player,
             lastUser=self.other_players[6],
@@ -218,7 +218,7 @@ class TestCallBluff(InitGame):
         #Check new game table snapshot
         new_snapshot = GameTableSnapshot.objects.filter(
             game=self.game).order_by('updated_at').last()
-        assert new_snapshot.cardsOnTable == '0'*156
+        assert new_snapshot.cards_on_table == '0'*156
         assert new_snapshot.currentUser == self.self_player
         assert new_snapshot.bluffCaller == self.self_player
         assert new_snapshot.bluffSuccessful == True

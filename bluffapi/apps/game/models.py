@@ -49,7 +49,7 @@ class GameTableSnapshot(common_models.TimeStampModel):
     """
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     current_set = models.PositiveIntegerField(null=True, blank=True)
-    cardsOnTable = models.CharField(max_length=156)
+    cards_on_table = models.CharField(max_length=156)
     lastCards = models.CharField(max_length=156)
     lastUser = models.ForeignKey(
         GamePlayer,
