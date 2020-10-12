@@ -66,6 +66,19 @@ class ChatConsumer(WebsocketConsumer):
                 data_update = {
                     'disconnected': False
                 }
+            connected_players = GamePlayer.objects.filter(
+                game=self.game_player.game, disconnected=False)
+            print(connected_players)
+            if not connected_players.exists():
+                print('nobody else connected')
+                #check if game is started
+                game = Game.objects.get(id=self.game_player.game.id)
+                if game.started:
+                    last_snapshot = GameTableSnapshot.objects.filter(
+                        game=self.game_player.game).latest('updated_at')
+                    last_snapshot.currentUser = self.game_player
+                    last_snapshot.save()
+
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data=data_update, partial=True)
             update_serializer.is_valid(raise_exception=True)
@@ -86,7 +99,6 @@ class ChatConsumer(WebsocketConsumer):
                 'type': 'playCards'
             }
         )
-        
 
     def disconnect(self, close_code):
         if self.game_player:
