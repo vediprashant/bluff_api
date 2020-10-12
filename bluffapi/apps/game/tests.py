@@ -126,7 +126,7 @@ class sTestJoinGame(InitGame):
             })
         output_dict['init_success'] = True
         output_dict['game_table'] = {
-            'currentSet': None,
+            'current_set': None,
             'card_count': self.game.decks*52
         }
         output_dict['self'] = {
@@ -190,7 +190,7 @@ class TestCallBluff(InitGame):
             lastCards='1'+'0'*155,  # just one card, that doesnt belong to current set
             currentUser=self.self_player,
             lastUser=self.other_players[6],
-            currentSet=9,
+            current_set=9,
         )
         self.gts = GameTableSnapshot.objects.get(id=self.gts.id)
 

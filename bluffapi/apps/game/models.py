@@ -32,7 +32,7 @@ class GamePlayer(common_models.TimeStampModel):
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     player_id = models.PositiveIntegerField(null=True, blank=True)
     disconnected = models.BooleanField(default=True)
-    noAction = models.PositiveIntegerField(default=0)
+    no_action = models.PositiveIntegerField(default=0)
     cards = models.CharField(max_length=156)
 
     class Meta:
@@ -48,7 +48,7 @@ class GameTableSnapshot(common_models.TimeStampModel):
     All cards are on Table untill Game has started
     """
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    currentSet = models.PositiveIntegerField(null=True, blank=True)
+    current_set = models.PositiveIntegerField(null=True, blank=True)
     cardsOnTable = models.CharField(max_length=156)
     lastCards = models.CharField(max_length=156)
     lastUser = models.ForeignKey(

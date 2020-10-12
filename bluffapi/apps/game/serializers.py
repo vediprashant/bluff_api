@@ -41,12 +41,12 @@ class CreateGameSerializer(serializers.Serializer):
                 game=game,
                 player_id=1,
                 disconnected=True,
-                noAction=0,
+                no_action=0,
                 cards='0'*156,  # Player has no cards initially
             )
             GameTableSnapshot.objects.create(
                 game=game,
-                currentSet=None,
+                current_set=None,
                 cardsOnTable=self.initial_cards(game.decks), #All cards on table
                 lastCards='0'*156, #no last cards
                 lastUser=None,
@@ -180,6 +180,7 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
     current_player_id = serializers.SerializerMethodField()
     last_player_id = serializers.SerializerMethodField()
     last_card_count = serializers.SerializerMethodField()
+    currentSet = serializers.SerializerMethodField()
 
     class Meta:
         model = GameTableSnapshot
@@ -203,6 +204,9 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         if obj.lastCards:
             return obj.lastCards.count('1')
         return None
+
+    def get_currentSet(self, obj):
+        return obj.current_set
 
 
 class DistributeCardsSerializer(serializers.Serializer):

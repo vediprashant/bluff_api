@@ -217,8 +217,8 @@ class ChatConsumer(WebsocketConsumer):
         if (last_snapshot.currentUser == self.game_player
             or self.getNextPlayer == self.game_player) \
                 and last_snapshot.lastUser != self.game_player:
-            # Check last cards and currentset
-            if self.fromSet(last_snapshot.currentSet, last_snapshot.lastCards):
+            # Check last cards and current_set
+            if self.fromSet(last_snapshot.current_set, last_snapshot.lastCards):
                 # table cards are mine
                 self.game_player.cards = self.cardsUnion(
                     self.game_player.cards, last_snapshot.cardsOnTable)
@@ -238,7 +238,7 @@ class ChatConsumer(WebsocketConsumer):
                     winner=last_snapshot.lastUser.user)
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
-                currentSet=None,
+                current_set=None,
                 cardsOnTable='0'*156,
                 lastCards='0'*156,
                 lastUser=None,
@@ -287,7 +287,7 @@ class ChatConsumer(WebsocketConsumer):
                 'cardsOnTable': '0'*156,
                 'currentUser': self.game_player,
                 'lastUser': None,
-                'currentSet': None,
+                'current_set': None,
                 'lastCards': '0'*156,
             }
         else:  # Whoever is next
@@ -296,7 +296,7 @@ class ChatConsumer(WebsocketConsumer):
                 'currentUser': self.getNextPlayer(),
                 'lastUser': current_snapshot.lastUser,
                 'lastCards': current_snapshot.lastCards,
-                'currentSet': current_snapshot.currentSet,
+                'current_set': current_snapshot.current_set,
             }
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
@@ -396,7 +396,7 @@ class ChatConsumer(WebsocketConsumer):
         update_player_serializer.save()
         GameTableSnapshot.objects.create(
             game=self.game_player.game,
-            currentSet=text_data['set'],
+            current_set=text_data['set'],
             cardsOnTable=updatedCardsOnTable,
             lastCards=cardsPlayed,
             lastUser=self.game_player,
