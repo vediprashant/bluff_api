@@ -5,7 +5,7 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import CreateGameSerializer, CreateGamePlayerSerializer, GameSerializer
@@ -13,28 +13,21 @@ from apps.game.serializers import CreateGameSerializer, CreateGamePlayerSerializ
 # Create your views here.
 
 
-class CreateGame(APIView):
+class CreateGame(CreateAPIView):
     '''
     Creates a new game
     '''
     permission_classes = [IsAuthenticated]
+    serializer_class = CreateGameSerializer
 
-    def post(self, request):
-        '''
-        requires decks as input i.e no. of decks
-        '''
-        # create a game
-        serializer = CreateGameSerializer(
-            data=request.data, context=request.user)
-        serializer.is_valid(raise_exception=True)
-        game = serializer.save()
-        return Response(game.id)
+    def get_context_data(self, **kwargs):
+        return self.request.user
 
 
 class CreateGamePlayer(APIView):
-    """
+    '''
     Create a Player who will play the game
-    """
+    '''
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

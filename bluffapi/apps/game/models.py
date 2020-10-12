@@ -5,9 +5,9 @@ from apps.common import models as common_models
 
 
 class Game(common_models.TimeStampModel):
-    """
+    '''
     Model to store the details of a game
-    """
+    '''
     started = models.BooleanField(default=False)
     decks = models.PositiveIntegerField(default=1)
     winner = models.ForeignKey(
@@ -25,9 +25,9 @@ class Game(common_models.TimeStampModel):
 
 
 class GamePlayer(common_models.TimeStampModel):
-    """
+    '''
     Model to store the details of a player playing a game
-    """
+    '''
     user = models.ForeignKey(accounts_models.User, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     player_id = models.PositiveIntegerField(null=True, blank=True)
@@ -43,10 +43,10 @@ class GamePlayer(common_models.TimeStampModel):
 
 
 class GameTableSnapshot(common_models.TimeStampModel):
-    """
+    '''
     Model to store the state of gameTable
     All cards are on Table untill Game has started
-    """
+    '''
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     currentSet = models.PositiveIntegerField(null=True, blank=True)
     cardsOnTable = models.CharField(max_length=156)

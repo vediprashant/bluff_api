@@ -6,7 +6,7 @@ from apps.game.models import Game, GamePlayer, GameTableSnapshot
 from apps.accounts import models as accounts_model
 
 
-class CreateGameSerializer(serializers.Serializer):
+class CreateGameSerializer(serializers.ModelSerializer):
     '''
     validates 3 >= decks >= 1
     creates a game
@@ -17,18 +17,23 @@ class CreateGameSerializer(serializers.Serializer):
     )
 
     class Meta:
-        fields = ['decks']
+        model = Game
+        fields = ['decks', 'id']
+        extra_kwargs = {
+            'decks': { 'write_only': True }
+        }
 
     def create(self, validated_data):
         with transaction.atomic():
+            print(self.context['request'].user)
             game = Game.objects.create(
                 started=False,
-                owner=self.context,
+                owner=self.context['request'].user,
                 winner=None,
                 decks=validated_data['decks']
             )
             GamePlayer.objects.create(
-                user=self.context,
+                user=self.context['request'].user,
                 game=game,
                 player_id=1,
                 disconnected=True,

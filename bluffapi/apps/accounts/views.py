@@ -14,9 +14,9 @@ from apps.accounts.serializers import LoginSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """
+    '''
     View to handle all the request to user
-    """
+    '''
     queryset = accounts_models.User.objects.all()
 
     # Redirect towards the required serializer based on request
@@ -39,17 +39,16 @@ class Login(CreateAPIView):
         else:
             return Response({
                 'message': 'Invalid Credentials'},
-                status=status.HTTP_401_UNAUTHORIZED)
+                status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(CreateAPIView):
-    """
+    '''
     It deletes the token and logsout user
-    """
+    '''
     authentication_classes = (TokenAuthentication, )
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        token_object = Token.objects.filter(user=request.user)
-        token_object.delete()
+        Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

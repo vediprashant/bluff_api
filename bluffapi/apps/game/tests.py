@@ -9,9 +9,9 @@ from django.contrib.auth.hashers import make_password
 
 
 class gameCreationTest(TestCase):
-    """
+    '''
     test to check create game api
-    """
+    '''
 
     def test_unauthenticated_user(self):
         response = self.client.post(reverse('create_game'))

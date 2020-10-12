@@ -6,9 +6,9 @@ from apps.accounts import models as accounts_models
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """
+    '''
     Serializer to handle signup of a user
-    """
+    '''
     confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -30,9 +30,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """
+    '''
     Serializer to show user details of a user
-    """
+    '''
     class Meta:
         model = accounts_models.User
         fields = ['name', 'email']
