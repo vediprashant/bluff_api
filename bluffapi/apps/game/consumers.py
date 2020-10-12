@@ -244,7 +244,7 @@ class ChatConsumer(WebsocketConsumer):
                 last_user=None,
                 current_user=current_user,
                 bluff_caller=self.game_player,
-                bluffSuccessful=True,
+                bluff_successful=True,
                 didSkip=None,
             )
             with transaction.atomic():
@@ -301,7 +301,7 @@ class ChatConsumer(WebsocketConsumer):
         new_snapshot = GameTableSnapshot(
             game=self.game_player.game,
             bluff_caller=None,
-            bluffSuccessful=None,
+            bluff_successful=None,
             didSkip=None,
             **next_snapshot_data
         ).save()
@@ -402,7 +402,7 @@ class ChatConsumer(WebsocketConsumer):
             last_user=self.game_player,
             current_user=self.getNextPlayer(),
             bluff_caller=None,
-            bluffSuccessful=None,
+            bluff_successful=None,
             didSkip=None
         )
         async_to_sync(self.channel_layer.group_send)(
