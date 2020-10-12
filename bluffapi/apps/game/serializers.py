@@ -49,7 +49,7 @@ class CreateGameSerializer(serializers.Serializer):
                 current_set=None,
                 cards_on_table=self.initial_cards(game.decks), #All cards on table
                 last_cards='0'*156, #no last cards
-                lastUser=None,
+                last_user=None,
                 currentUser=myself,
                 bluffCaller=None,
                 bluffSuccessful=None,
@@ -196,8 +196,8 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         return None
 
     def get_last_player_id(self, obj):
-        if obj.lastUser:
-            return obj.lastUser.player_id
+        if obj.last_user:
+            return obj.last_user.player_id
         return None
 
     def get_last_card_count(self, obj):

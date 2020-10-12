@@ -216,32 +216,32 @@ class ChatConsumer(WebsocketConsumer):
         # update gamestate
         if (last_snapshot.currentUser == self.game_player
             or self.getNextPlayer == self.game_player) \
-                and last_snapshot.lastUser != self.game_player:
+                and last_snapshot.last_user != self.game_player:
             # Check last cards and current_set
             if self.fromSet(last_snapshot.current_set, last_snapshot.last_cards):
                 # table cards are mine
                 self.game_player.cards = self.cardsUnion(
                     self.game_player.cards, last_snapshot.cards_on_table)
-                currentUser = last_snapshot.lastUser  # The guy whose turn is next
+                currentUser = last_snapshot.last_user  # The guy whose turn is next
                 loser = self.game_player  # the guy who lost the bluff
                 # Check if He has no cards left
             else:
                 # table cards are his
-                last_snapshot.lastUser.cards = self.cardsUnion(
-                    last_snapshot.lastUser.cards, last_snapshot.cards_on_table)
+                last_snapshot.last_user.cards = self.cardsUnion(
+                    last_snapshot.last_user.cards, last_snapshot.cards_on_table)
                 currentUser = self.game_player  # The guy whose turn is next
-                loser = last_snapshot.lastUser  # the guy who lost the bluff
-            if last_snapshot.lastUser.cards == '0'*156:
+                loser = last_snapshot.last_user  # the guy who lost the bluff
+            if last_snapshot.last_user.cards == '0'*156:
                 # He is the winner
                 currentUser = None
                 Game.objects.filter(id=self.game_player.game.id).update(
-                    winner=last_snapshot.lastUser.user)
+                    winner=last_snapshot.last_user.user)
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
                 current_set=None,
                 cards_on_table='0'*156,
                 last_cards='0'*156,
-                lastUser=None,
+                last_user=None,
                 currentUser=currentUser,
                 bluffCaller=self.game_player,
                 bluffSuccessful=True,
@@ -281,12 +281,12 @@ class ChatConsumer(WebsocketConsumer):
 
         # Logic to empty the table and start next round
         # If i'm the last user who played cards
-        if current_snapshot.lastUser == self.game_player:
+        if current_snapshot.last_user == self.game_player:
             # Empty the table, i begin the next round
             next_snapshot_data = {
                 'cards_on_table': '0'*156,
                 'currentUser': self.game_player,
-                'lastUser': None,
+                'last_user': None,
                 'current_set': None,
                 'last_cards': '0'*156,
             }
@@ -294,7 +294,7 @@ class ChatConsumer(WebsocketConsumer):
             next_snapshot_data = {
                 'cards_on_table': current_snapshot.cards_on_table,
                 'currentUser': self.getNextPlayer(),
-                'lastUser': current_snapshot.lastUser,
+                'last_user': current_snapshot.last_user,
                 'last_cards': current_snapshot.last_cards,
                 'current_set': current_snapshot.current_set,
             }
@@ -373,11 +373,11 @@ class ChatConsumer(WebsocketConsumer):
             'updated_at')
         cards_on_table = game_table.cards_on_table
         nextUser = self.getNextPlayer()
-        if game_table.lastUser is not None and game_table.lastUser.cards == '0'*156:
+        if game_table.last_user is not None and game_table.last_user.cards == '0'*156:
             # He is the winner
             nextUser = None
             Game.objects.filter(id=self.game_player.game.id).update(
-                winner=game_table.lastUser.user)
+                winner=game_table.last_user.user)
         cardsPlayed = text_data['cardsPlayed']
         updatedCards = ""
         updated_cards_on_table = ""
@@ -399,7 +399,7 @@ class ChatConsumer(WebsocketConsumer):
             current_set=text_data['set'],
             cards_on_table=updated_cards_on_table,
             last_cards=cardsPlayed,
-            lastUser=self.game_player,
+            last_user=self.game_player,
             currentUser=self.getNextPlayer(),
             bluffCaller=None,
             bluffSuccessful=None,

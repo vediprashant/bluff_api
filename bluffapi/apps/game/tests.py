@@ -189,14 +189,14 @@ class TestCallBluff(InitGame):
             cards_on_table='101101'*26,  # random cards on table
             last_cards='1'+'0'*155,  # just one card, that doesnt belong to current set
             currentUser=self.self_player,
-            lastUser=self.other_players[6],
+            last_user=self.other_players[6],
             current_set=9,
         )
         self.gts = GameTableSnapshot.objects.get(id=self.gts.id)
 
         # set cards of last user
-        self.gts.lastUser.cards = '010010'*26  # complement of cards on table
-        self.gts.lastUser.save()
+        self.gts.last_user.cards = '010010'*26  # complement of cards on table
+        self.gts.last_user.save()
 
         # Time to call bluff
         connected, subprotocol = await self.communicator.connect()
@@ -213,7 +213,7 @@ class TestCallBluff(InitGame):
         res = await self.communicator.receive_from()
 
         # Check last user has cards '1'*156
-        assert GamePlayer.objects.get(id=self.gts.lastUser.id).cards == '1'*156
+        assert GamePlayer.objects.get(id=self.gts.last_user.id).cards == '1'*156
 
         #Check new game table snapshot
         new_snapshot = GameTableSnapshot.objects.filter(
@@ -222,7 +222,7 @@ class TestCallBluff(InitGame):
         assert new_snapshot.currentUser == self.self_player
         assert new_snapshot.bluffCaller == self.self_player
         assert new_snapshot.bluffSuccessful == True
-        assert new_snapshot.lastUser is None
+        assert new_snapshot.last_user is None
         assert new_snapshot.last_cards == '0'*156
         await self.communicator.disconnect(code=1006)
         await self.communicator.wait()

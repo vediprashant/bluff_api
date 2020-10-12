@@ -51,10 +51,10 @@ class GameTableSnapshot(common_models.TimeStampModel):
     current_set = models.PositiveIntegerField(null=True, blank=True)
     cards_on_table = models.CharField(max_length=156)
     last_cards = models.CharField(max_length=156)
-    lastUser = models.ForeignKey(
+    last_user = models.ForeignKey(
         GamePlayer,
         on_delete=models.CASCADE,
-        related_name='lastUser',
+        related_name='last_user',
         null=True,
     )
     currentUser = models.ForeignKey(
