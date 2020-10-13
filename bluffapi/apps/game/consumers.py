@@ -109,7 +109,7 @@ class GameConsumer(WebsocketConsumer):
             last_snapshot = GameTableSnapshot.objects.filter(
                 game=self.game_player.game).latest('updated_at')
             if last_snapshot.current_user == self.game_player \
-                and self.game_player.game.started:
+                    and self.game_player.game.started:
                 # Make him skip his turn
                 self.skip('Forced Skip')
             update_serializer = SocketGamePlayerSerializer(
@@ -269,15 +269,8 @@ class GameConsumer(WebsocketConsumer):
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).latest('updated_at')
         current_snapshot.did_skip = True
-        current_snapshot.save()
         # Check if next player(connected or not) has no cards left
         next_joined_player = self.get_next_player(showAll=True)
-        next_user =  self.get_next_player()
-        if self.game_player.game.started == True and next_joined_player.cards == '0'*game_constants.MAX_CARD_LENGTH:
-            # next player is winner
-            Game.objects.filter(id=self.game_player.game.id).update(
-                winner=next_joined_player.user)
-            next_user = None
 
         # Logic to empty the table and start next round
         # If i'm the last user who played cards
@@ -293,18 +286,27 @@ class GameConsumer(WebsocketConsumer):
         else:  # Whoever is next
             next_snapshot_data = {
                 'cards_on_table': current_snapshot.cards_on_table,
-                'current_user': next_user,
+                'current_user': self.get_next_player(),
                 'last_user': current_snapshot.last_user,
                 'last_cards': current_snapshot.last_cards,
                 'current_set': current_snapshot.current_set,
             }
-        new_snapshot = GameTableSnapshot(
-            game=self.game_player.game,
-            bluff_caller=None,
-            bluff_successful=None,
-            did_skip=None,
-            **next_snapshot_data
-        ).save()
+
+        with transaction.atomic():
+            current_snapshot.save()
+            if self.game_player.game.started == True and next_joined_player.cards == '0'*game_constants.MAX_CARD_LENGTH:
+                # next player is winner
+                Game.objects.filter(id=self.game_player.game.id).update(
+                    winner=next_joined_player.user)
+                next_snapshot_data['current_user'] = None
+            new_snapshot = GameTableSnapshot(
+                game=self.game_player.game,
+                bluff_caller=None,
+                bluff_successful=None,
+                did_skip=None,
+                **next_snapshot_data
+            ).save()
+
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {
