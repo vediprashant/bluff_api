@@ -10,9 +10,10 @@ from channels.generic.websocket import WebsocketConsumer
 from apps.game.serializers import *
 from apps.game.models import *
 from asgiref.sync import async_to_sync
+from apps.game import constants as game_constants
 
 
-class ChatConsumer(WebsocketConsumer):
+class GameConsumer(WebsocketConsumer):
     game_player = None
     actions = None
 
@@ -27,10 +28,10 @@ class ChatConsumer(WebsocketConsumer):
         }
 
     def connect(self):
-        # if not self.scope['user'].is_authenticated():
-        #     self.close()
+        if not self.scope['user'].is_authenticated():
+            self.close()
         self.room_name = self.scope['url_route']['kwargs']['game_id']
-        self.room_group_name = 'game_%s' % self.room_name
+        self.room_group_name = f'game_{self.room_name}'
         async_to_sync(self.channel_layer.group_add)(
             self.room_group_name,
             self.channel_name
@@ -231,7 +232,7 @@ class ChatConsumer(WebsocketConsumer):
                     last_snapshot.last_user.cards, last_snapshot.cards_on_table)
                 current_user = self.game_player  # The guy whose turn is next
                 loser = last_snapshot.last_user  # the guy who lost the bluff
-            if last_snapshot.last_user.cards == '0'*156:
+            if last_snapshot.last_user.cards == '0'*game_constants.MAX_CARD_LENGTH:
                 # He is the winner
                 current_user = None
                 Game.objects.filter(id=self.game_player.game.id).update(
@@ -239,8 +240,8 @@ class ChatConsumer(WebsocketConsumer):
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
                 current_set=None,
-                cards_on_table='0'*156,
-                last_cards='0'*156,
+                cards_on_table='0'*game_constants.MAX_CARD_LENGTH,
+                last_cards='0'*game_constants.MAX_CARD_LENGTH,
                 last_user=None,
                 current_user=current_user,
                 bluff_caller=self.game_player,
@@ -272,7 +273,7 @@ class ChatConsumer(WebsocketConsumer):
         current_snapshot.save()
         # Check if next player(connected or not) has no cards left
         next_joined_player = self.get_next_player(showAll=True)
-        if self.game_player.game.started == True and next_joined_player.cards == '0'*156:
+        if self.game_player.game.started == True and next_joined_player.cards == '0'*game_constants.MAX_CARD_LENGTH:
             # next player is winner
             current_snapshot.current_user = None
             current_snapshot.save()
@@ -284,11 +285,11 @@ class ChatConsumer(WebsocketConsumer):
         if current_snapshot.last_user == self.game_player:
             # Empty the table, i begin the next round
             next_snapshot_data = {
-                'cards_on_table': '0'*156,
+                'cards_on_table': '0'*game_constants.MAX_CARD_LENGTH,
                 'current_user': self.game_player,
                 'last_user': None,
                 'current_set': None,
-                'last_cards': '0'*156,
+                'last_cards': '0'*game_constants.MAX_CARD_LENGTH,
             }
         else:  # Whoever is next
             next_snapshot_data = {
@@ -335,7 +336,7 @@ class ChatConsumer(WebsocketConsumer):
         # distribute cards from table
         for player_id in range(1, total_players+1):
             # cards of current player in loop
-            my_cards = bytearray('0'*156, 'utf-8')
+            my_cards = bytearray('0'*game_constants.MAX_CARD_LENGTH, 'utf-8')
             # Get Random cards from table
             for i in range(cards_per_player):
                 acquired_card = random.randint(0, len(card_list)-1)
@@ -343,7 +344,7 @@ class ChatConsumer(WebsocketConsumer):
                     '1')  # Add card to my cards
                 card_list.pop(acquired_card)  # Remove card from card list
             all_player_cards[player_id] = my_cards.decode('utf-8')
-        for i in range(0, 156):
+        for i in range(0, game_constants.MAX_CARD_LENGTH):
             if all_player_cards[1] == '1' and all_player_cards[2] == '1':
                 print(f'Error at index {i}')
         distribute_serializer = DistributeCardsSerializer(
@@ -373,7 +374,7 @@ class ChatConsumer(WebsocketConsumer):
             'updated_at')
         cards_on_table = game_table.cards_on_table
         next_user = self.get_next_player()
-        if game_table.last_user is not None and game_table.last_user.cards == '0'*156:
+        if game_table.last_user is not None and game_table.last_user.cards == '0'*game_constants.MAX_CARD_LENGTH:
             # He is the winner
             next_user = None
             Game.objects.filter(id=self.game_player.game.id).update(

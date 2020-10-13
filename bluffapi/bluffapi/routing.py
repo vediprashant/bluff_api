@@ -1,5 +1,5 @@
 from channels.routing import ProtocolTypeRouter, URLRouter
-from apps.game.consumers import ChatConsumer
+from apps.game.consumers import GameConsumer
 #from django.urls import re_path
 from bluffapi.token_auth import TokenAuthMiddlewareStack
 from apps.game.routing import websocket_urlpatterns

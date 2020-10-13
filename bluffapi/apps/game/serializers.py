@@ -5,6 +5,7 @@ from rest_framework import serializers, exceptions
 
 from apps.game.models import Game, GamePlayer, GameTableSnapshot
 from apps.accounts import models as accounts_model
+from apps.game import constants as game_constants
 
 
 class CreateGameSerializer(serializers.Serializer):
@@ -42,13 +43,14 @@ class CreateGameSerializer(serializers.Serializer):
                 player_id=1,
                 disconnected=True,
                 no_action=0,
-                cards='0'*156,  # Player has no cards initially
+                cards='0'*game_constants.MAX_CARD_LENGTH,  # Player has no cards initially
             )
             GameTableSnapshot.objects.create(
                 game=game,
                 current_set=None,
-                cards_on_table=self.initial_cards(game.decks), #All cards on table
-                last_cards='0'*156, #no last cards
+                cards_on_table=self.initial_cards(
+                    game.decks),  # All cards on table
+                last_cards='0'*game_constants.MAX_CARD_LENGTH,  # no last cards
                 last_user=None,
                 current_user=myself,
                 bluff_caller=None,
@@ -81,7 +83,7 @@ class CreateGamePlayerSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop('email')
-        validated_data['cards'] = '0'*(156)
+        validated_data['cards'] = '0'*(game_constants.MAX_CARD_LENGTH)
         instance = GamePlayer.objects.create(**validated_data)
         return instance
 
@@ -128,7 +130,8 @@ class SocketInitSerializer(serializers.Serializer):
         if game_player is None:
             raise exceptions.ValidationError('User not a part of given game')
         elif game_player.player_id is None and game_player.game.started:
-            raise exceptions.ValidationError('Game already started, cannot join')
+            raise exceptions.ValidationError(
+                'Game already started, cannot join')
         data['game_player'] = game_player
         return data
 
@@ -225,7 +228,7 @@ class DistributeCardsSerializer(serializers.Serializer):
                 player.cards = cards
                 player.save()
             # Clear Game Table
-            last_table_snapshot.cards_on_table = '0'*156
+            last_table_snapshot.cards_on_table = '0'*game_constants.MAX_CARD_LENGTH
             last_table_snapshot.save()
             game.save()
         return game
@@ -241,7 +244,7 @@ class DistributeCardsSerializer(serializers.Serializer):
                     .filter(player_id=player_id).exists():
                 raise Exception(
                     f'player id {player_id }does not exist for this game')
-            if len(cards) != 156:
+            if len(cards) != game_constants.MAX_CARD_LENGTH:
                 raise Exception(
                     f'Invalid cards config set for player id {player_id}')
         return data
@@ -261,28 +264,32 @@ class TimelineSerializer(serializers.Serializer):
         super().to_representation(instance)
 
         all_game_players = self.context['user'].gameplayer_set.filter(
-            Q(game__created_at__gt=instance['start_date']) 
+            Q(game__created_at__gt=instance['start_date'])
             & Q(game__created_at__lt=instance['end_date'])
             & ~Q(player_id=None))
         bluff_caller_instances = GameTableSnapshot.objects.filter(
             bluff_caller__in=all_game_players
         )
-        successful_bluffs = bluff_caller_instances.filter(bluff_successful=True)
-        unsuccessful_bluffs = bluff_caller_instances.filter(bluff_successful=False)
+        successful_bluffs = bluff_caller_instances.filter(
+            bluff_successful=True)
+        unsuccessful_bluffs = bluff_caller_instances.filter(
+            bluff_successful=False)
 
         instance['successful_bluffs'] = successful_bluffs
         instance['unsuccessful_bluffs'] = unsuccessful_bluffs
         instance['all_game_players'] = all_game_players
         return instance
 
+
 class InvitedPlayerSerializer(serializers.ModelSerializer):
-    game_id = serializers.IntegerField() 
+    game_id = serializers.IntegerField()
     email = serializers.SerializerMethodField()
+
     class Meta:
         model = GamePlayer
         fields = ['email', 'game_id']
         extra_kwargs = {
-            'game_id': { 'write_only': True }
+            'game_id': {'write_only': True}
         }
 
     def validate(self, attrs):
