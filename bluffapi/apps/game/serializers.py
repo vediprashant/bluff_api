@@ -1,5 +1,5 @@
-from django.db import transaction
 from django.db.models import Q
+from django.db import transaction, IntegrityError
 
 from rest_framework import serializers, exceptions
 
@@ -8,7 +8,7 @@ from apps.accounts import models as accounts_model
 from apps.game import constants as game_constants
 
 
-class CreateGameSerializer(serializers.Serializer):
+class CreateGameSerializer(serializers.ModelSerializer):
     '''
     validates 3 >= decks >= 1
     creates a game
@@ -19,7 +19,11 @@ class CreateGameSerializer(serializers.Serializer):
     )
 
     class Meta:
-        fields = ['decks']
+        model = Game
+        fields = ['decks', 'id']
+        extra_kwargs = {
+            'decks': {'write_only': True}
+        }
 
     def initial_cards(self, decks):
         if decks == 1:
@@ -33,12 +37,12 @@ class CreateGameSerializer(serializers.Serializer):
         with transaction.atomic():
             game = Game.objects.create(
                 started=False,
-                owner=self.context,
+                owner=self.context['request'].user,
                 winner=None,
                 decks=validated_data['decks']
             )
             myself = GamePlayer.objects.create(
-                user=self.context,
+                user=self.context['request'].user,
                 game=game,
                 player_id=1,
                 disconnected=True,
@@ -66,18 +70,18 @@ class CreateGamePlayerSerializer(serializers.Serializer):
     game = serializers.IntegerField()
 
     def validate(self, data):
-        email = data.get('email')
+        email = data['email']
         user = accounts_model.User.objects.filter(email=email).first()
         if user:
             data['user'] = user
         else:
-            msg = "User not found, Please provide Valid email or ask the user to Sign Up"
+            msg = 'User not found, Please provide Valid email or ask the user to Sign Up'
             raise exceptions.ValidationError(msg)
-        game = Game.objects.filter(pk=data.get('game')).first()
+        game = Game.objects.filter(pk=data['game']).first()
         if game and game.owner == self.context:
             data['game'] = game
         else:
-            msg = "Game id not found, Please provide Valid Input"
+            msg = 'Game id not found, Please provide Valid Input'
             raise exceptions.ValidationError(msg)
         return super(CreateGamePlayerSerializer, self).validate(data)
 
@@ -144,9 +148,7 @@ class SocketGameSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_winner_name(self, obj):
-        if obj.winner:
-            return obj.winner.name
-        return None
+        return obj.winner.name if obj.winner else ''
 
 
 class GamePlayerUserSerializer(serializers.ModelSerializer):
@@ -194,19 +196,13 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         return obj.cards_on_table.count('1')
 
     def get_current_player_id(self, obj):
-        if obj.current_user:
-            return obj.current_user.player_id
-        return None
+        return obj.current_user.player_id if obj.current_user else None
 
     def get_last_player_id(self, obj):
-        if obj.last_user:
-            return obj.last_user.player_id
-        return None
+        return obj.last_user.player_id if obj.last_user else None
 
     def get_last_card_count(self, obj):
-        if obj.last_cards:
-            return obj.last_cards.count('1')
-        return None
+        return obj.last_cards.count('1') if obj.last_cards else None
 
     def get_currentSet(self, obj):
         return obj.current_set

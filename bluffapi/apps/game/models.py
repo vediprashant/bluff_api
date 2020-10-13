@@ -24,7 +24,7 @@ class Game(common_models.TimeStampModel):
                               on_delete=models.CASCADE, related_name='owner', help_text='user which is the owner of this game')
 
     def __str__(self):
-        return f"{self.owner.name}({self.id})"
+        return f'{self.owner.name}({self.id})'
 
 
 class GamePlayer(common_models.TimeStampModel):

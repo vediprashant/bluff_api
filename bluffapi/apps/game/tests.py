@@ -21,9 +21,9 @@ from apps.game.serializers import *
 
 
 class gameCreationTest(TestCase):
-    """
+    '''
     test to check create game api
-    """
+    '''
 
     def test_unauthenticated_user(self):
         response = self.client.post(reverse('create_game'))

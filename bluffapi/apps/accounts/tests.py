@@ -119,9 +119,9 @@ class LoginTest(TestCase):
 
 
 class LogoutTest(TestCase):
-    """
+    '''
     Test To check functioning of logout api
-    """
+    '''
     # When credentials are correct
 
     def test_sucessful_logout(self):

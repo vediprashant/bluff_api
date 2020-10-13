@@ -5,8 +5,8 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework import status, exceptions
+from rest_framework.generics import ListAPIView, CreateAPIView
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
@@ -20,28 +20,19 @@ from apps.game.serializers import (
 # Create your views here.
 
 
-class CreateGame(APIView):
+class CreateGame(CreateAPIView):
     '''
     Creates a new game
+    takes number of decks as input
     '''
     permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        '''
-        requires decks as input i.e no. of decks
-        '''
-        # create a game
-        serializer = CreateGameSerializer(
-            data=request.data, context=request.user)
-        serializer.is_valid(raise_exception=True)
-        game = serializer.save()
-        return Response({ 'id':game.id }, status=status.HTTP_201_CREATED)
+    serializer_class = CreateGameSerializer
 
 
 class CreateGamePlayer(APIView):
-    """
+    '''
     Create a Player who will play the game
-    """
+    '''
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -51,8 +42,8 @@ class CreateGamePlayer(APIView):
         try:
             serializer.save()
         except IntegrityError as e:
-            return Response({"msg": "User already invited for the game"}, status=400)
-        return Response(status=201)
+            return Response({'msg': 'User already invited for the game'}, status=400)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class ListGames(ListAPIView):

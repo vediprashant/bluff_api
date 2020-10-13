@@ -70,9 +70,7 @@ class GameConsumer(WebsocketConsumer):
                 }
             connected_players = GamePlayer.objects.filter(
                 game=self.game_player.game, disconnected=False)
-            print(connected_players)
             if not connected_players.exists():
-                print('nobody else connected')
                 # check if game is started
                 game = Game.objects.get(id=self.game_player.game.id)
                 if game.started and game.winner is None:
@@ -104,19 +102,19 @@ class GameConsumer(WebsocketConsumer):
 
     def disconnect(self, close_code):
         if self.game_player:
-            self.game_player = GamePlayer.objects.get(id=self.game_player.id)
+            self.game_player = GamePlayer.objects.\
+                select_related('game').get(id=self.game_player.id)
             # Check if he was current user
             last_snapshot = GameTableSnapshot.objects.filter(
                 game=self.game_player.game).latest('updated_at')
-            if last_snapshot.current_user == self.game_player:
+            if last_snapshot.current_user == self.game_player \
+                and self.game_player.game.started:
                 # Make him skip his turn
                 self.skip('Forced Skip')
-                print("Forced Skip")
             update_serializer = SocketGamePlayerSerializer(
                 self.game_player, data={'disconnected': True}, partial=True)
             update_serializer.is_valid(raise_exception=True)
             update_serializer.save()
-            print('informing everyone of disconnect')
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {
@@ -173,7 +171,7 @@ class GameConsumer(WebsocketConsumer):
     def is_it_my_turn(self):
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).order_by('updated_at').last()
-        if current_snapshot.current_user is not None and current_snapshot.current_user.disconnected == True:
+        if current_snapshot.current_user and current_snapshot.current_user.disconnected == True:
             if self.game_player == self.get_next_player():
                 return True
         elif current_snapshot.current_user == self.game_player:
@@ -265,7 +263,6 @@ class GameConsumer(WebsocketConsumer):
 
     def skip(self, data):
         if not self.is_it_my_turn():
-            print("Not my turn")
             return
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).latest('updated_at')
@@ -344,9 +341,6 @@ class GameConsumer(WebsocketConsumer):
                     '1')  # Add card to my cards
                 card_list.pop(acquired_card)  # Remove card from card list
             all_player_cards[player_id] = my_cards.decode('utf-8')
-        for i in range(0, game_constants.MAX_CARD_LENGTH):
-            if all_player_cards[1] == '1' and all_player_cards[2] == '1':
-                print(f'Error at index {i}')
         distribute_serializer = DistributeCardsSerializer(
             data={'all_player_cards': all_player_cards},
             context={'game': self.game_player.game}
@@ -366,7 +360,6 @@ class GameConsumer(WebsocketConsumer):
         update cards on table and player cards when card is played
         '''
         if not self.is_it_my_turn():
-            print("Not my turn")
             return
         self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         cards = self.game_player.cards
