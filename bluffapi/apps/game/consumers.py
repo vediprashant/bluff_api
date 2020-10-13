@@ -262,6 +262,7 @@ class GameConsumer(WebsocketConsumer):
         )
 
     def skip(self, data):
+        self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         if not self.is_it_my_turn():
             return
         current_snapshot = GameTableSnapshot.objects.filter(
@@ -270,12 +271,13 @@ class GameConsumer(WebsocketConsumer):
         current_snapshot.save()
         # Check if next player(connected or not) has no cards left
         next_joined_player = self.get_next_player(showAll=True)
+        next_user =  self.get_next_player()
         if self.game_player.game.started == True and next_joined_player.cards == '0'*game_constants.MAX_CARD_LENGTH:
             # next player is winner
-            current_snapshot.current_user = None
-            current_snapshot.save()
+            print(next_joined_player, next_joined_player.cards)
             Game.objects.filter(id=self.game_player.game.id).update(
                 winner=next_joined_player.user)
+            next_user = None
 
         # Logic to empty the table and start next round
         # If i'm the last user who played cards
@@ -291,7 +293,7 @@ class GameConsumer(WebsocketConsumer):
         else:  # Whoever is next
             next_snapshot_data = {
                 'cards_on_table': current_snapshot.cards_on_table,
-                'current_user': self.get_next_player(),
+                'current_user': next_user,
                 'last_user': current_snapshot.last_user,
                 'last_cards': current_snapshot.last_cards,
                 'current_set': current_snapshot.current_set,
@@ -318,6 +320,7 @@ class GameConsumer(WebsocketConsumer):
         start a game
         distribute cards randomly
         '''
+        self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         game_table = self.game_player.game.gametablesnapshot_set.latest(
             'updated_at')
         # List of indexes on which cards exist
