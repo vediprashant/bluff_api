@@ -76,13 +76,13 @@ class CreateGamePlayerSerializer(serializers.Serializer):
             data['user'] = user
         else:
             msg = 'User not found, Please provide Valid email or ask the user to Sign Up'
-            raise exceptions.ValidationError(msg)
+            raise serializers.ValidationError(msg)
         game = Game.objects.filter(pk=data['game']).first()
         if game and game.owner == self.context:
             data['game'] = game
         else:
             msg = 'Game id not found, Please provide Valid Input'
-            raise exceptions.ValidationError(msg)
+            raise serializers.ValidationError(msg)
         return super(CreateGamePlayerSerializer, self).validate(data)
 
     def create(self, validated_data):
@@ -279,7 +279,7 @@ class TimelineSerializer(serializers.Serializer):
 
 class InvitedPlayerSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user')
-    
+
     class Meta:
         model = GamePlayer
         fields = ['email', 'game_id']
