@@ -266,7 +266,7 @@ class TimelineSerializer(serializers.Serializer):
         all_game_players = self.context['user'].gameplayer_set.filter(
             Q(game__created_at__gt=instance['start_date'])
             & Q(game__created_at__lt=instance['end_date'])
-            & ~Q(player_id=None))
+            & Q(player_id__isnull=False))
         bluff_caller_instances = GameTableSnapshot.objects.filter(
             bluff_caller__in=all_game_players
         )
@@ -282,20 +282,8 @@ class TimelineSerializer(serializers.Serializer):
 
 
 class InvitedPlayerSerializer(serializers.ModelSerializer):
-    game_id = serializers.IntegerField()
-    email = serializers.SerializerMethodField()
-
+    email = serializers.EmailField(source='user')
+    
     class Meta:
         model = GamePlayer
         fields = ['email', 'game_id']
-        extra_kwargs = {
-            'game_id': {'write_only': True}
-        }
-
-    def validate(self, attrs):
-        if not Game.objects.filter(id=attrs['game_id'], owner=self.context['user']).exists():
-            raise serializers.ValidationError('User is not the owner of game')
-        return attrs
-
-    def get_email(self, obj):
-        return obj.user.email

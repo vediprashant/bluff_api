@@ -50,7 +50,7 @@ class GameConsumer(WebsocketConsumer):
             # assign a player_id, set disconnected to false
             if self.game_player.player_id is None:
                 last_player = self.game_player.game.gameplayer_set.filter(
-                    ~Q(player_id=None)
+                    player_id__isnull=False
                 ).order_by('player_id').last()
                 # If no one has been assigned any player_id, last_player is none
                 if last_player:
@@ -133,8 +133,8 @@ class GameConsumer(WebsocketConsumer):
         game = Game.objects.prefetch_related(
             'gameplayer_set').get(id=self.game_player.game.id)
         game_players = game.gameplayer_set.order_by('player_id').filter(
-            ~Q(user=user_id) & ~Q(player_id=None))  # filter() To be replaced with line below
-        # filter(~Q(user=user_id) && ~Q(player_id=None))#Only return people who have joined
+            ~Q(user=user_id) & Q(player_id__isnull=False))  # filter() To be replaced with line below
+        # filter(~Q(user=user_id) && Q(player_id__isnull=False))#Only return people who have joined
         myself = game.gameplayer_set.get(user=user_id)
         game_table = game.gametablesnapshot_set.latest('updated_at')
         game_state = {
@@ -153,7 +153,7 @@ class GameConsumer(WebsocketConsumer):
         # minimum one player should be there in game with player_id set
         # current player is assumed to be myself
         all_players = GamePlayer.objects.filter(
-            ~Q(player_id=None) & Q(game=self.game_player.game))
+            Q(player_id__isnull=False) & Q(game=self.game_player.game))
         # When not testing Replace above line with follwing to process only connected players
         # all_players = self.game_player.game.gameplayer_set.filter(
         #     ~Q(player_id=None) & Q(disconnected=False))
@@ -327,7 +327,7 @@ class GameConsumer(WebsocketConsumer):
         card_list = [index for index, string in enumerate(game_table.cards_on_table)
                      if string == '1']
         total_players = self.game_player.game.gameplayer_set.filter(
-            ~Q(player_id=None)
+            Q(player_id__isnull=False)
         ).order_by('player_id').last().player_id
         cards_per_player = math.floor(
             self.game_player.game.decks*52/total_players)

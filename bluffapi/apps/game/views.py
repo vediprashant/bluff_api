@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from rest_framework import status
+from rest_framework import status, exceptions
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
@@ -66,14 +66,14 @@ class ListGames(ListAPIView):
         user = self.request.user
         filters = self.request.GET.getlist('filters')
         queryset = Game.objects.filter(
-            id__in=user.gameplayer_set.filter(~Q(player_id=None)).values('game')
+            id__in=user.gameplayer_set.filter(Q(player_id__isnull=False)).values('game')
         )
         if 'owner' in filters:
             queryset = queryset.filter(owner=user)
         if 'completed' in filters:
-            queryset = queryset.filter(~Q(winner=None))
+            queryset = queryset.filter(Q(winner__isnull=False))
         else:
-            queryset = queryset.filter(Q(winner=None))
+            queryset = queryset.filter(Q(winner__isnull=True))
         queryset = queryset.order_by('created_at')
         return queryset
 
@@ -106,12 +106,12 @@ class ListInvitedPlayers(ListAPIView):
     '''
     permission_classes = [IsAuthenticated]
 
-    queryset = GamePlayer.objects.all()
     serializer_class = InvitedPlayerSerializer
 
-    def get(self, request, *args, **kwargs):
-        serializer = InvitedPlayerSerializer(data=kwargs, context={'user': request.user})
-        serializer.is_valid(raise_exception=True)
-        owner = Game.objects.get(id=kwargs['game_id']).owner
-        self.queryset = self.queryset.filter(game=kwargs['game_id']).exclude(user_id=owner.id)
-        return super().get(self, request, *args, **kwargs)
+    def get_queryset(self):
+        queryset = GamePlayer.objects.filter(
+            game__id=self.kwargs['game_id'], game__owner=self.request.user)
+        if not queryset.exists():
+            raise exceptions.ValidationError('User is not the owner of game')
+        queryset = queryset.exclude(user=self.request.user)
+        return queryset
