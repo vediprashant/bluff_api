@@ -89,7 +89,7 @@ class InitGame:
         # Communicator
         self.communicator = WebsocketCommunicator(
             application,
-            f'ws/chat/{self.game.id}/',
+            f'ws/game/{self.game.id}/',
             headers=[
                 (b'cookie', bytes(f'token={self.user.auth_token}', 'utf-8'))]
         )
@@ -147,7 +147,7 @@ class sTestJoinGame(InitGame):
         )
         communicator = WebsocketCommunicator(
             application,
-            f'ws/chat/{self.game.id}/',
+            f'ws/game/{self.game.id}/',
             headers=[
                 (b'cookie', bytes(f'token={self.user.auth_token}', 'utf-8'))]
         )

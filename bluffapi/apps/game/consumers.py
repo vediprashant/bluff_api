@@ -30,6 +30,7 @@ class GameConsumer(WebsocketConsumer):
     def connect(self):
         if not self.scope['user'].is_authenticated():
             self.close()
+            return
         self.room_name = self.scope['url_route']['kwargs']['game_id']
         self.room_group_name = f'game_{self.room_name}'
         async_to_sync(self.channel_layer.group_add)(
@@ -274,7 +275,6 @@ class GameConsumer(WebsocketConsumer):
         next_user =  self.get_next_player()
         if self.game_player.game.started == True and next_joined_player.cards == '0'*game_constants.MAX_CARD_LENGTH:
             # next player is winner
-            print(next_joined_player, next_joined_player.cards)
             Game.objects.filter(id=self.game_player.game.id).update(
                 winner=next_joined_player.user)
             next_user = None
