@@ -12,9 +12,9 @@ environ.Env.read_env()
 SECRET_KEY = '!rnk9voithr(h^)n!c@^)5j*9a2-rsedz&0$x^@ugac6k6*wn4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = env('DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=[]) 
 SECURE_SSL_REDIRECT = False
 
 # Application definition
@@ -88,7 +88,6 @@ WSGI_APPLICATION = 'bluffapi.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
