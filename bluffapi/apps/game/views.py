@@ -7,6 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, exceptions
 from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework import viewsets
+from rest_framework.mixins import CreateModelMixin, ListModelMixin
 
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
@@ -19,15 +21,37 @@ from apps.game.serializers import (
 
 # Create your views here.
 
-
-class CreateGame(CreateAPIView):
-    '''
-    Creates a new game
-    takes number of decks as input
-    '''
+class GameViewset(viewsets.GenericViewSet, CreateModelMixin, ListModelMixin):
     permission_classes = [IsAuthenticated]
-    serializer_class = CreateGameSerializer
 
+    def get_queryset(self):
+        queryset_dict = {
+            'list': self.list_games_queryset(self.request)
+        }
+        return queryset_dict[self.action]
+
+    def get_serializer_class(self, *args, **kwargs):
+        serializer_dict = {
+            'create': CreateGameSerializer,
+            'list': GameSerializer
+        }
+        return serializer_dict[self.action]
+
+    def list_games_queryset(self, request):
+        user = self.request.user
+        filters = self.request.GET.getlist('filters')
+        queryset = Game.objects.filter(
+            id__in=user.gameplayer_set.filter(Q(player_id__isnull=False)).values('game')
+        )
+        if 'owner' in filters:
+            queryset = queryset.filter(owner=user)
+        if 'completed' in filters:
+            queryset = queryset.filter(Q(winner__isnull=False))
+        else:
+            queryset = queryset.filter(Q(winner__isnull=True))
+        queryset = queryset.order_by('created_at')
+        return queryset
+        
 
 class CreateGamePlayer(APIView):
     '''
@@ -44,29 +68,6 @@ class CreateGamePlayer(APIView):
         except IntegrityError as e:
             return Response({'msg': 'User already invited for the game'}, status=400)
         return Response(status=status.HTTP_201_CREATED)
-
-
-class ListGames(ListAPIView):
-    '''
-    Lists and filters All games related to user
-    '''
-    permission_classes = [IsAuthenticated]
-    serializer_class = GameSerializer
-
-    def get_queryset(self, *args, **kwargs):
-        user = self.request.user
-        filters = self.request.GET.getlist('filters')
-        queryset = Game.objects.filter(
-            id__in=user.gameplayer_set.filter(Q(player_id__isnull=False)).values('game')
-        )
-        if 'owner' in filters:
-            queryset = queryset.filter(owner=user)
-        if 'completed' in filters:
-            queryset = queryset.filter(Q(winner__isnull=False))
-        else:
-            queryset = queryset.filter(Q(winner__isnull=True))
-        queryset = queryset.order_by('created_at')
-        return queryset
 
 
 class TimelineStats(APIView):

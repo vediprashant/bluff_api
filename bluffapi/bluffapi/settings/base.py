@@ -14,7 +14,8 @@ SECRET_KEY = '!rnk9voithr(h^)n!c@^)5j*9a2-rsedz&0$x^@ugac6k6*wn4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG', default=False)
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=[]) 
+ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=[])
+
 SECURE_SSL_REDIRECT = False
 
 # Application definition
