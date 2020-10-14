@@ -80,6 +80,7 @@ class TimelineStats(APIView):
         serializer = TimelineSerializer(data=self.request.data, context={
                                         'user': self.request.user})
         serializer.is_valid(raise_exception=True)
+
         def graph(queryset):
             graph = []
             for index, row in enumerate(queryset):

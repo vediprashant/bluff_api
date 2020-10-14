@@ -26,6 +26,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
         }
 
     def initial_cards(self, decks):
+        ''' Initializes cards based on the decks'''
         if decks == 1:
             return '100'*52
         elif decks == 2:
@@ -34,6 +35,10 @@ class CreateGameSerializer(serializers.ModelSerializer):
             return '111'*52
 
     def create(self, validated_data):
+        '''
+        Creates instance of game, gamePlayer instance of the owner
+        and initializes table
+        '''
         with transaction.atomic():
             game = Game.objects.create(
                 started=False,
@@ -61,15 +66,18 @@ class CreateGameSerializer(serializers.ModelSerializer):
                 bluff_successful=None,
                 did_skip=None
             )
-
         return game
 
 
 class CreateGamePlayerSerializer(serializers.Serializer):
+    '''
+    Serialzer to make instance of gamePlayer when a user is invited
+    '''
     email = serializers.EmailField()
     game = serializers.IntegerField()
 
     def validate(self, data):
+        '''Validates the user that is being Invited'''
         email = data['email']
         user = accounts_model.User.objects.filter(email=email).first()
         if user:
@@ -86,6 +94,7 @@ class CreateGamePlayerSerializer(serializers.Serializer):
         return super(CreateGamePlayerSerializer, self).validate(data)
 
     def create(self, validated_data):
+        '''creates a gamePlayer instance of invited user'''
         validated_data.pop('email')
         validated_data['cards'] = '0'*(game_constants.MAX_CARD_LENGTH)
         instance = GamePlayer.objects.create(**validated_data)
@@ -93,6 +102,9 @@ class CreateGamePlayerSerializer(serializers.Serializer):
 
 
 class GameSerializer(serializers.ModelSerializer):
+    '''
+    Serializer to return list of games
+    '''
     class Meta:
         model = Game
         fields = ['id', 'created_at']
@@ -124,11 +136,17 @@ class SocketInitSerializer(serializers.Serializer):
         return value
 
     def validate_user(self, value):
+        '''
+        check if the user exists
+        '''
         if not accounts_model.User.objects.filter(id=value).exists():
             raise exceptions.ValidationError('User does not exist')
         return value
 
     def validate(self, data):
+        '''
+        validates if the users is part of the game and game is not started yet
+        '''
         game_player = GamePlayer.objects.select_related('game').filter(
             game_id=data['game'], user_id=data['user']).first()
         if game_player is None:
@@ -141,6 +159,9 @@ class SocketInitSerializer(serializers.Serializer):
 
 
 class SocketGameSerializer(serializers.ModelSerializer):
+    '''
+    Returns all the fields of the Game and name of the winner
+    '''
     winner_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -148,16 +169,25 @@ class SocketGameSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_winner_name(self, obj):
+        '''
+        method to get the name of the winner if winner exists
+        '''
         return obj.winner.name if obj.winner else ''
 
 
 class GamePlayerUserSerializer(serializers.ModelSerializer):
+    '''
+    Serializers to get the details of the player from User model
+    '''
     class Meta:
         model = accounts_model.User
         fields = ['id', 'name', 'email']
 
 
 class SocketGamePlayerSerializer(serializers.ModelSerializer):
+    '''
+    Serializer to handle properties of other gamePlayers
+    '''
     card_count = serializers.SerializerMethodField()
     user = GamePlayerUserSerializer()
 
@@ -169,10 +199,14 @@ class SocketGamePlayerSerializer(serializers.ModelSerializer):
         }
 
     def get_card_count(self, obj):
+        '''Returns count of the cards present from cards field'''
         return obj.cards.count('1')
 
 
 class SocketMyselfSerializer(serializers.ModelSerializer):
+    '''
+    Serializer to handle properties of current gamePlayer
+    '''
     user = GamePlayerUserSerializer()
 
     class Meta:
@@ -181,6 +215,9 @@ class SocketMyselfSerializer(serializers.ModelSerializer):
 
 
 class SocketGameTableSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for gameTableSnapshot to send modified fields of it
+    '''
     card_count = serializers.SerializerMethodField()
     current_player_id = serializers.SerializerMethodField()
     last_player_id = serializers.SerializerMethodField()
@@ -193,6 +230,7 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
                   'last_player_id', 'last_card_count']
 
     def get_card_count(self, obj):
+        '''returns count of cards_on_table'''
         return obj.cards_on_table.count('1')
 
     def get_current_player_id(self, obj):
@@ -202,6 +240,7 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         return obj.last_user.player_id if obj.last_user else None
 
     def get_last_card_count(self, obj):
+        '''returns count of last_cards_played'''
         return obj.last_cards.count('1') if obj.last_cards else None
 
     def get_currentSet(self, obj):
@@ -209,12 +248,16 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
 
 
 class DistributeCardsSerializer(serializers.Serializer):
+    '''
+    It Distributes Cards among all players and save their cards
+    '''
     all_player_cards = serializers.DictField()
 
     class Meta:
         fields = ['all_player_cards']
 
     def create(self, validated_data):
+        '''It updates cards,starts game and updates gameTable'''
         game = self.context['game']
         game.started = True
         last_table_snapshot = game.gametablesnapshot_set.latest('updated_at')
@@ -247,6 +290,10 @@ class DistributeCardsSerializer(serializers.Serializer):
 
 
 class TimelineSerializer(serializers.Serializer):
+    '''
+    It takes start_date and end_date and sends details of bluff 
+    from all games in that time period
+    '''
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField()
 
@@ -278,6 +325,9 @@ class TimelineSerializer(serializers.Serializer):
 
 
 class InvitedPlayerSerializer(serializers.ModelSerializer):
+    '''
+    Serializer to send invitedPlayers of a game
+    '''
     email = serializers.EmailField(source='user')
 
     class Meta:

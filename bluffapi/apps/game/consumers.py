@@ -14,10 +14,14 @@ from apps.game import constants as game_constants
 
 
 class GameConsumer(WebsocketConsumer):
+    '''
+    It calles desired function whenever an event happens
+    '''
     game_player = None
     actions = None
 
     def __init__(self, *args, **kwargs):
+        '''calls functions to run based on the actions it get'''
         super().__init__(*args, **kwargs)
         self.actions = {
             # define your actions here
@@ -28,6 +32,10 @@ class GameConsumer(WebsocketConsumer):
         }
 
     def connect(self):
+        '''
+        initializes gamplayer instance, sends gameState
+        and connects you to the game
+        '''
         if not self.scope['user'].is_authenticated():
             self.close()
             return
@@ -102,6 +110,10 @@ class GameConsumer(WebsocketConsumer):
         )
 
     def disconnect(self, close_code):
+        '''
+        Skips turn if its players turn ans game is started and runs 
+        Clean up code when user disconnects
+        '''
         if self.game_player:
             self.game_player = GamePlayer.objects.\
                 select_related('game').get(id=self.game_player.id)
@@ -126,8 +138,8 @@ class GameConsumer(WebsocketConsumer):
 
     def update_game_state(self, user_id):
         '''
-        Returns Dict containing game state
-        game players in ascending order of player_id
+        Returns object conatining game_state having details 
+        of game,players,self and table
         '''
         game = Game.objects.prefetch_related(
             'gameplayer_set').get(id=self.game_player.game.id)
@@ -170,6 +182,8 @@ class GameConsumer(WebsocketConsumer):
         return result
 
     def is_it_my_turn(self):
+        '''Checks if it's turn of current user
+        '''
         current_snapshot = GameTableSnapshot.objects.filter(
             game=self.game_player.game).order_by('updated_at').last()
         if current_snapshot.current_user and current_snapshot.current_user.disconnected == True:
@@ -263,6 +277,7 @@ class GameConsumer(WebsocketConsumer):
         )
 
     def skip(self, data):
+        '''It skips turn of the user'''
         self.game_player = GamePlayer.objects.get(id=self.game_player.id)
         if not self.is_it_my_turn():
             return
@@ -415,6 +430,7 @@ class GameConsumer(WebsocketConsumer):
         )
 
     def play_cards(self, event):
+        '''send data of the game to webSockets'''
         self.send(text_data=json.dumps({
             **self.update_game_state(self.scope['user'].id),
             'bluff_cards': event.get('bluff_cards'),
