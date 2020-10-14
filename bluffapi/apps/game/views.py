@@ -57,7 +57,8 @@ class ListGames(ListAPIView):
         user = self.request.user
         filters = self.request.GET.getlist('filters')
         queryset = Game.objects.filter(
-            id__in=user.gameplayer_set.filter(Q(player_id__isnull=False)).values('game')
+            id__in=user.gameplayer_set.filter(
+                Q(player_id__isnull=False)).values('game')
         )
         if 'owner' in filters:
             queryset = queryset.filter(owner=user)
@@ -79,6 +80,7 @@ class TimelineStats(APIView):
         serializer = TimelineSerializer(data=self.request.data, context={
                                         'user': self.request.user})
         serializer.is_valid(raise_exception=True)
+
         def graph(queryset):
             graph = []
             for index, row in enumerate(queryset):

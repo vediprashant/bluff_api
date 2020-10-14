@@ -28,6 +28,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class Login(CreateAPIView):
+    '''
+    View to send token to the user if successfully logggedin
+    '''
+
     def post(self, request):
         loginSerializer = LoginSerializer(data=request.data)
         loginSerializer.is_valid(raise_exception=True)
