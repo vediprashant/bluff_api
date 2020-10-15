@@ -58,8 +58,8 @@ class GameTableSnapshot(common_models.TimeStampModel):
     '''
     game = models.ForeignKey(
         Game, on_delete=models.CASCADE, help_text='instance of the game')
-    current_set = models.PositiveIntegerField(
-        null=True, blank=True, help_text='current_set from 1-13')
+    current_rank = models.PositiveIntegerField(
+        null=True, blank=True, help_text='current_rank from 1-13')
     cards_on_table = models.CharField(
         max_length=156, help_text='string of length 156 where 1 is represented by card on table')
     last_cards = models.CharField(
@@ -82,8 +82,7 @@ class GameTableSnapshot(common_models.TimeStampModel):
         GamePlayer, on_delete=models.CASCADE, blank=True, null=True, related_name='bluff_caller', help_text='gameplayer who called bluff')
     bluff_successful = models.NullBooleanField(
         null=True, help_text='bluff was successful or not')
-    did_skip = models.NullBooleanField(
-        null=True, help_text='if cureent user skipped his turn')
+    did_skip = models.NullBooleanField(help_text='if cureent user skipped his turn')
 
     def __str__(self):
         return f'{self.game}'

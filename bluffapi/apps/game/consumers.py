@@ -193,16 +193,16 @@ class GameConsumer(WebsocketConsumer):
             return True
         return False
 
-    def from_set(self, current_set, cards):
+    def from_set(self, current_rank, cards):
         '''
         Whether all cards belong to given set
         '''
-        # Assumes current_set between 1 and 13
+        # Assumes current_rank between 1 and 13
         # List of indexes on which cards exist
         card_list = [index for index, string in enumerate(cards)
                      if string == '1']
         for card in card_list:
-            if math.ceil((card+1)/12) != current_set:
+            if math.ceil((card+1)/12) != current_rank:
                 return False
         return True
 
@@ -231,8 +231,8 @@ class GameConsumer(WebsocketConsumer):
         if (last_snapshot.current_user == self.game_player
             or self.get_next_player == self.game_player) \
                 and last_snapshot.last_user != self.game_player:
-            # Check last cards and current_set
-            if self.from_set(last_snapshot.current_set, last_snapshot.last_cards):
+            # Check last cards and current_rank
+            if self.from_set(last_snapshot.current_rank, last_snapshot.last_cards):
                 # table cards are mine
                 self.game_player.cards = self.cards_union(
                     self.game_player.cards, last_snapshot.cards_on_table)
@@ -252,7 +252,7 @@ class GameConsumer(WebsocketConsumer):
                     winner=last_snapshot.last_user.user)
             new_snapshot = GameTableSnapshot(
                 game=last_snapshot.game,
-                current_set=None,
+                current_rank=None,
                 cards_on_table='0'*game_constants.MAX_CARD_LENGTH,
                 last_cards='0'*game_constants.MAX_CARD_LENGTH,
                 last_user=None,
@@ -295,7 +295,7 @@ class GameConsumer(WebsocketConsumer):
                 'cards_on_table': '0'*game_constants.MAX_CARD_LENGTH,
                 'current_user': self.game_player,
                 'last_user': None,
-                'current_set': None,
+                'current_rank': None,
                 'last_cards': '0'*game_constants.MAX_CARD_LENGTH,
             }
         else:  # Whoever is next
@@ -304,7 +304,7 @@ class GameConsumer(WebsocketConsumer):
                 'current_user': self.get_next_player(),
                 'last_user': current_snapshot.last_user,
                 'last_cards': current_snapshot.last_cards,
-                'current_set': current_snapshot.current_set,
+                'current_rank': current_snapshot.current_rank,
             }
 
         with transaction.atomic():
@@ -410,7 +410,7 @@ class GameConsumer(WebsocketConsumer):
         update_player_serializer.save()
         GameTableSnapshot.objects.create(
             game=self.game_player.game,
-            current_set=text_data['set'],
+            current_rank=text_data['set'],
             cards_on_table=updated_cards_on_table,
             last_cards=cards_played,
             last_user=self.game_player,

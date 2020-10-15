@@ -27,12 +27,8 @@ class CreateGameSerializer(serializers.ModelSerializer):
 
     def initial_cards(self, decks):
         ''' Initializes cards based on the decks'''
-        if decks == 1:
-            return '100'*52
-        elif decks == 2:
-            return '110'*52
-        else:
-            return '111'*52
+        max_decks = int(game_constants.MAX_CARD_LENGTH/52)
+        return f"{'1'*decks}{'0'*(max_decks-decks)}"*52
 
     def create(self, validated_data):
         '''
@@ -56,7 +52,7 @@ class CreateGameSerializer(serializers.ModelSerializer):
             )
             GameTableSnapshot.objects.create(
                 game=game,
-                current_set=None,
+                current_rank=None,
                 cards_on_table=self.initial_cards(
                     game.decks),  # All cards on table
                 last_cards='0'*game_constants.MAX_CARD_LENGTH,  # no last cards
@@ -105,9 +101,6 @@ class SocketInitSerializer(serializers.Serializer):
         min_value=1
     )
 
-    class Meta:
-        fields = ['game', 'user']
-
     def validate_game(self, value):
         '''
         checks if game exists
@@ -145,7 +138,7 @@ class SocketGameSerializer(serializers.ModelSerializer):
     '''
     Returns all the fields of the Game and name of the winner
     '''
-    winner_name = serializers.CharField(source='winner.name')
+    winner_name = serializers.CharField(source='winner.name', default=None)
 
     class Meta:
         model = Game
@@ -221,7 +214,7 @@ class SocketGameTableSerializer(serializers.ModelSerializer):
         return obj.last_cards.count('1') if obj.last_cards else None
 
     def get_currentSet(self, obj):
-        return obj.current_set
+        return obj.current_rank
 
 
 class DistributeCardsSerializer(serializers.Serializer):

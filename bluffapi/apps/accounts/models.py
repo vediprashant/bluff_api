@@ -28,6 +28,7 @@ class UserManager(BaseUserManager):
         Creates and saves a superuser with the given email and password.
         '''
         kwargs['is_superuser'] = True
+        kwargs['is_staff'] = True
         user = self.create_user(
             email,
             password=password,
@@ -49,20 +50,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=255,
         help_text='Name'
     )
+    is_staff = models.BooleanField()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
     objects = UserManager()
-
-    @property
-    def is_staff(self):
-        '''
-        Returns True if is_superuser is True
-        '''
-        if self.is_superuser:
-            return True
-        else:
-            return False
 
     def get_full_name(self):
         '''
