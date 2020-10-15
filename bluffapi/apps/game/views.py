@@ -21,6 +21,7 @@ from apps.game.serializers import (
 
 # Create your views here.
 
+
 class GameViewset(viewsets.GenericViewSet, CreateModelMixin, ListModelMixin):
     permission_classes = [IsAuthenticated]
 
@@ -38,10 +39,14 @@ class GameViewset(viewsets.GenericViewSet, CreateModelMixin, ListModelMixin):
         return serializer_dict[self.action]
 
     def list_games_queryset(self, request):
+        '''
+        Returns queryset containing filtered list of games
+        '''
         user = self.request.user
         filters = self.request.GET.getlist('filters')
         queryset = Game.objects.filter(
-            id__in=user.gameplayer_set.filter(Q(player_id__isnull=False)).values('game')
+            id__in=user.gameplayer_set.filter(
+                Q(player_id__isnull=False)).values('game')
         )
         if 'owner' in filters:
             queryset = queryset.filter(owner=user)
@@ -51,25 +56,17 @@ class GameViewset(viewsets.GenericViewSet, CreateModelMixin, ListModelMixin):
             queryset = queryset.filter(Q(winner__isnull=True))
         queryset = queryset.order_by('created_at')
         return queryset
-        
 
-class CreateGamePlayer(APIView):
+
+class CreateGamePlayer(CreateAPIView):
     '''
     Create a Player who will play the game
     '''
     permission_classes = [IsAuthenticated]
+    serializer_class = CreateGamePlayerSerializer
 
-    def post(self, request):
-        serializer = CreateGamePlayerSerializer(
-            data=request.data, context=request.user)
-        serializer.is_valid(raise_exception=True)
-        try:
-            serializer.save()
-        except IntegrityError as e:
-            return Response({'msg': 'User already invited for the game'}, status=400)
-        return Response(status=status.HTTP_201_CREATED)
-
-
+#This view is WIP, and  intended for stats part of project, also WIP
+#Therefore review fixes are not present here
 class TimelineStats(APIView):
     '''
     Shows User stats between two given dates

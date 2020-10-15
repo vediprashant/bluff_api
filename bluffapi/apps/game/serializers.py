@@ -69,36 +69,19 @@ class CreateGameSerializer(serializers.ModelSerializer):
         return game
 
 
-class CreateGamePlayerSerializer(serializers.Serializer):
-    '''
-    Serialzer to make instance of gamePlayer when a user is invited
-    '''
-    email = serializers.EmailField()
-    game = serializers.IntegerField()
+class CreateGamePlayerSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        queryset=accounts_model.User.objects.all(), slug_field='email')
+
+    class Meta:
+        model = GamePlayer
+        fields = ['game', 'user']
 
     def validate(self, data):
-        '''Validates the user that is being Invited'''
-        email = data['email']
-        user = accounts_model.User.objects.filter(email=email).first()
-        if user:
-            data['user'] = user
-        else:
-            msg = 'User not found, Please provide Valid email or ask the user to Sign Up'
-            raise serializers.ValidationError(msg)
-        game = Game.objects.filter(pk=data['game']).first()
-        if game and game.owner == self.context:
-            data['game'] = game
-        else:
-            msg = 'Game id not found, Please provide Valid Input'
-            raise serializers.ValidationError(msg)
-        return super(CreateGamePlayerSerializer, self).validate(data)
-
-    def create(self, validated_data):
-        '''creates a gamePlayer instance of invited user'''
-        validated_data.pop('email')
-        validated_data['cards'] = '0'*(game_constants.MAX_CARD_LENGTH)
-        instance = GamePlayer.objects.create(**validated_data)
-        return instance
+        super().validate(data)
+        if not Game.objects.get(id=data['game'].id).owner == self.context['request'].user:
+            raise serializers.ValidationError('User is not the owner of game')
+        return data
 
 
 class GameSerializer(serializers.ModelSerializer):
@@ -162,17 +145,11 @@ class SocketGameSerializer(serializers.ModelSerializer):
     '''
     Returns all the fields of the Game and name of the winner
     '''
-    winner_name = serializers.SerializerMethodField()
+    winner_name = serializers.CharField(source='winner.name')
 
     class Meta:
         model = Game
         fields = '__all__'
-
-    def get_winner_name(self, obj):
-        '''
-        method to get the name of the winner if winner exists
-        '''
-        return obj.winner.name if obj.winner else ''
 
 
 class GamePlayerUserSerializer(serializers.ModelSerializer):
@@ -288,7 +265,8 @@ class DistributeCardsSerializer(serializers.Serializer):
                     f'Invalid cards config set for player id {player_id}')
         return data
 
-
+# Intended for stats part of project.
+# WIP, No review fixes done here yet
 class TimelineSerializer(serializers.Serializer):
     '''
     It takes start_date and end_date and sends details of bluff 
@@ -328,7 +306,7 @@ class InvitedPlayerSerializer(serializers.ModelSerializer):
     '''
     Serializer to send invitedPlayers of a game
     '''
-    email = serializers.EmailField(source='user')
+    email = serializers.EmailField(source='user.email')
 
     class Meta:
         model = GamePlayer
