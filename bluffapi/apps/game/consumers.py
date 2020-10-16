@@ -102,6 +102,7 @@ class GameConsumer(WebsocketConsumer):
                 'message': e.__str__()
             }))
             self.close()
+            return
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {

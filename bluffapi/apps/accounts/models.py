@@ -50,7 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=255,
         help_text='Name'
     )
-    is_staff = models.BooleanField()
+    is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
