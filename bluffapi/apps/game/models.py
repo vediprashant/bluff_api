@@ -2,6 +2,7 @@ from django.db import models
 
 from apps.accounts import models as accounts_models
 from apps.common import models as common_models
+from apps.game import constants as game_constants
 
 
 class Game(common_models.TimeStampModel):
@@ -42,7 +43,7 @@ class GamePlayer(common_models.TimeStampModel):
     no_action = models.PositiveIntegerField(
         default=0, help_text='no of times no action is performed')
     cards = models.CharField(
-        max_length=156, help_text='string of length 156 where 1 is represented by card that user have')
+        max_length=game_constants.MAX_CARD_LENGTH, help_text='string of length max_decks*52 where 1 is represented by card that user have')
 
     class Meta:
         unique_together = ('user', 'game')
@@ -61,9 +62,9 @@ class GameTableSnapshot(common_models.TimeStampModel):
     current_rank = models.PositiveIntegerField(
         null=True, blank=True, help_text='current_rank from 1-13')
     cards_on_table = models.CharField(
-        max_length=156, help_text='string of length 156 where 1 is represented by card on table')
+        max_length=game_constants.MAX_CARD_LENGTH, help_text='string of length max_decks*52 where 1 is represented by card on table')
     last_cards = models.CharField(
-        max_length=156, help_text='string of length 156 which represents last cards that were played')
+        max_length=game_constants.MAX_CARD_LENGTH, help_text='string of length max_decks*52 which represents last cards that were played')
     last_user = models.ForeignKey(
         GamePlayer,
         on_delete=models.CASCADE,
@@ -76,13 +77,14 @@ class GameTableSnapshot(common_models.TimeStampModel):
         on_delete=models.CASCADE,
         related_name='current_user',
         null=True,
-        help_text='gamePlayer instance whose turn is current'
+        help_text='GamePlayer instance whose turn is current'
     )
     bluff_caller = models.ForeignKey(
         GamePlayer, on_delete=models.CASCADE, blank=True, null=True, related_name='bluff_caller', help_text='gameplayer who called bluff')
     bluff_successful = models.NullBooleanField(
         null=True, help_text='bluff was successful or not')
-    did_skip = models.NullBooleanField(help_text='if cureent user skipped his turn')
+    did_skip = models.NullBooleanField(
+        help_text='if cureent user skipped his turn')
 
     def __str__(self):
         return f'{self.game}'

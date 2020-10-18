@@ -36,7 +36,6 @@ class GameViewset(LoggedInMixin, viewsets.GenericViewSet, CreateModelMixin, List
         }
         return serializer_dict[self.action]
 
-
     def list_games_queryset(self, request):
         '''
         Returns queryset containing filtered list of games

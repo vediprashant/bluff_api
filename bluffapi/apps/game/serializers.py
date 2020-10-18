@@ -75,7 +75,7 @@ class CreateGamePlayerSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         super().validate(data)
-        if not Game.objects.get(id=data['game'].id).owner == self.context['request'].user:
+        if not data['game'].owner == self.context['request'].user:
             raise serializers.ValidationError('User is not the owner of game')
         return data
 
@@ -142,7 +142,7 @@ class SocketGameSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Game
-        fields = '__all__'
+        fields = ['started', 'winner', 'owner', 'winner_name']
 
 
 class GamePlayerUserSerializer(serializers.ModelSerializer):
@@ -260,6 +260,8 @@ class DistributeCardsSerializer(serializers.Serializer):
 
 # Intended for stats part of project.
 # WIP, No review fixes done here yet
+
+
 class TimelineSerializer(serializers.Serializer):
     '''
     It takes start_date and end_date and sends details of bluff 

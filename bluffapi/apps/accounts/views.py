@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 
 from rest_framework import viewsets, permissions
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import CreateAPIView, DestroyAPIView
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
@@ -31,28 +31,16 @@ class Login(CreateAPIView):
     '''
     View to send token to the user if successfully logggedin
     '''
-
-    def post(self, request):
-        loginSerializer = LoginSerializer(data=request.data)
-        loginSerializer.is_valid(raise_exception=True)
-        user = authenticate(request, **loginSerializer.validated_data)
-        if user is not None:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response(
-                {'token': token.key})
-        else:
-            return Response({
-                'message': 'Invalid Credentials'},
-                status=status.HTTP_400_BAD_REQUEST)
+    serializer_class = LoginSerializer
 
 
-class LogoutView(CreateAPIView):
+class LogoutView(DestroyAPIView):
     '''
     It deletes the token and logsout user
     '''
     authentication_classes = (TokenAuthentication, )
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request):
+    def delete(self, request):
         Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
