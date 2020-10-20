@@ -9,6 +9,7 @@ from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework import viewsets
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 
+from apps.game import filter_classes
 from apps.game.mixins.accessMixins import LoggedInMixin
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
@@ -22,7 +23,9 @@ from apps.game.serializers import (
 # Create your views here.
 
 
-class GameViewset(LoggedInMixin, viewsets.GenericViewSet, CreateModelMixin, ListModelMixin):
+class GameViewset(LoggedInMixin, viewsets.GenericViewSet, CreateModelMixin, ListModelMixin,):
+
+    filterset_class = filter_classes.GamesFilterSet
 
     def get_queryset(self):
         if self.action == 'list':
@@ -41,17 +44,10 @@ class GameViewset(LoggedInMixin, viewsets.GenericViewSet, CreateModelMixin, List
         Returns queryset containing filtered list of games
         '''
         user = self.request.user
-        filters = self.request.GET.getlist('filters')
         queryset = Game.objects.filter(
             id__in=user.gameplayer_set.filter(
                 Q(player_id__isnull=False)).values('game')
         )
-        if 'owner' in filters:
-            queryset = queryset.filter(owner=user)
-        if 'completed' in filters:
-            queryset = queryset.filter(Q(winner__isnull=False))
-        else:
-            queryset = queryset.filter(Q(winner__isnull=True))
         queryset = queryset.order_by('created_at')
         return queryset
 
@@ -73,7 +69,7 @@ class TimelineStats(LoggedInMixin, APIView):
 
     def post(self, *args, **kwargs):
         serializer = TimelineSerializer(data=self.request.data, context={
-                                        'user': self.request.user})
+            'user': self.request.user})
         serializer.is_valid(raise_exception=True)
 
         def graph(queryset):
