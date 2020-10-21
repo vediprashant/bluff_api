@@ -6,9 +6,9 @@ class GamesFilterSet(django_filters.FilterSet):
     '''
     Class to filter games based on it's status
     '''
-    completed = django_filters.BooleanFilter(
+    ongoing = django_filters.BooleanFilter(
         field_name='winner', lookup_expr='isnull')
 
     class Meta:
         model = game_models.Game
-        fields = ['completed']
+        fields = ['ongoing']
