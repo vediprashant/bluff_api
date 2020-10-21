@@ -272,7 +272,10 @@ class GameConsumer(WebsocketConsumer):
                 'text': 'asdfasd',
                 'bluff_cards': last_snapshot.last_cards,
                 'action': 'Show',
-                'bluffLooser': loser.user.name,
+                'bluffLooser': {
+                    'userId': loser.user.id,
+                    'userName': loser.user.name
+                },
                 'last_player_turn': self.game_player.player_id
             }
         )
