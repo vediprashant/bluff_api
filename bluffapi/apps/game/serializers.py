@@ -74,7 +74,7 @@ class CreateGamePlayerSerializer(serializers.ModelSerializer):
         fields = ['game', 'user']
 
     def validate(self, data):
-        if not data['game'].owner == self.context['request'].user:
+        if data['game'].owner != self.context['request'].user:
             raise serializers.ValidationError('User is not the owner of game')
         return super().validate(data)
 
@@ -251,7 +251,7 @@ class DistributeCardsSerializer(serializers.Serializer):
             if not game.gameplayer_set\
                     .filter(player_id=player_id).exists():
                 raise Exception(
-                    f'player id {player_id }does not exist for this game')
+                    f'player id {player_id} does not exist for this game')
             if len(cards) != game_constants.MAX_CARD_LENGTH:
                 raise Exception(
                     f'Invalid cards config set for player id {player_id}')
