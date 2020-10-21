@@ -26,6 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         confirm_password = data.pop('confirm_password')
         if data['password'] != confirm_password:
             raise serializers.ValidationError('Passwords do no match')
+        data['email'] = data['email'].lower()
         return data
 
     def create(self, validated_data):
@@ -55,6 +56,10 @@ class LoginSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['email', 'password']
+
+    def validate(self, data):
+        data['email'] = data['email'].lower()
+        return super().validate(data)
 
     def create(self, validated_data):
         user = authenticate(**validated_data)

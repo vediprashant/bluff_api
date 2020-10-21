@@ -74,10 +74,9 @@ class CreateGamePlayerSerializer(serializers.ModelSerializer):
         fields = ['game', 'user']
 
     def validate(self, data):
-        super().validate(data)
         if not data['game'].owner == self.context['request'].user:
             raise serializers.ValidationError('User is not the owner of game')
-        return data
+        return super().validate(data)
 
 
 class GameSerializer(serializers.ModelSerializer):

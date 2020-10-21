@@ -8,6 +8,7 @@ class UserManager(BaseUserManager):
     '''
     User Manager for creating users and superusers
     '''
+
     def create_user(self, email, password=None, **kwargs):
         '''
         Creates and saves a user with given email, name and password
