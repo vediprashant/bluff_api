@@ -18,6 +18,8 @@ from apps.game.serializers import (
     GameSerializer,
     TimelineSerializer,
     InvitedPlayerSerializer,
+    SocketGamePlayerSerializer,
+    GameStatsSerializer
 )
 
 # Create your views here.
@@ -98,3 +100,26 @@ class ListInvitedPlayers(LoggedInMixin, ListAPIView):
             raise exceptions.ValidationError('User is not the owner of game')
         queryset = queryset.exclude(user=self.request.user)
         return queryset
+
+
+class GameStats(LoggedInMixin, ListAPIView):
+
+    serializer_class = GameStatsSerializer
+
+    def get_queryset(self):
+        game = Game.objects.filter(id=self.kwargs['game_id']).first()
+        if not game:
+            raise exceptions.ValidationError("This game does not exist")
+        game_player = GamePlayer.objects.filter(
+            game=game, user=self.request.user).first()
+        if game_player is None:
+            raise exceptions.ValidationError("You are not Part of this game")
+        queryset = game.gameplayer_set.order_by(
+            'player_id').filter(Q(player_id__isnull=False))
+        return queryset
+
+        # Status: Started,
+        # owner: true,
+        # Winner: ''
+        # No of Players: 5,
+        # Player_Name: Cards Left

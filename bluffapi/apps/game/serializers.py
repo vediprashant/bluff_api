@@ -306,3 +306,25 @@ class InvitedPlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = GamePlayer
         fields = ['email', 'game_id']
+
+
+class GameStatsSerializer(serializers.ModelSerializer):
+    '''
+    Serializer to handle properties of other gamePlayers
+    '''
+    user = GamePlayerUserSerializer()
+    game = SocketGameSerializer()
+    card_count = serializers.SerializerMethodField()
+    owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GamePlayer
+        fields = ['owner']
+
+    def get_card_count(self, obj):
+        '''Returns count of the cards present from cards field'''
+        return obj.cards.count('1')
+
+    def get_owner(self, obj):
+        '''Returns if current user is the owner of game'''
+        return obj.game.owner == self.context['request'].user
