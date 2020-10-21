@@ -2,6 +2,7 @@ from rest_framework import exceptions, serializers
 
 from django.contrib.auth.hashers import make_password
 
+
 from apps.accounts import models as accounts_models
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication

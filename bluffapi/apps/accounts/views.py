@@ -6,10 +6,15 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.mail import send_mail
+from django.conf import settings
+from apps.accounts.tasks import send_signup_mail
 
 from apps.accounts import (
-    models as accounts_models, serializers as accounts_serializers
+    models as accounts_models, serializers as accounts_serializers,
+    constants as accounts_constants
 )
+
 from apps.accounts.serializers import LoginSerializer
 
 
@@ -25,6 +30,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return accounts_serializers.RegisterSerializer
         else:
             return accounts_serializers.UserSerializer
+
+    def create(self, request):
+        response = super(UserViewSet, self).create(request)
+        subject = accounts_constants.SUBJECT
+        message = accounts_constants.MESSAGE
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [response.data['email']]
+        send_signup_mail.delay(subject, message, email_from, recipient_list)
+        return response
 
 
 class Login(CreateAPIView):

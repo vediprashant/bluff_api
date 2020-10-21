@@ -133,9 +133,21 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
+BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Dhaka'
 
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
 CORS_ORIGIN_ALLOW_ALL = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'playblufff@gmail.com'
+EMAIL_HOST_PASSWORD = env('GMAIL_PASSWORD')

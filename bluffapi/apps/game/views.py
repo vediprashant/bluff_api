@@ -8,9 +8,13 @@ from rest_framework import status, exceptions
 from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework import viewsets
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
+from django.core.mail import send_mail
+from django.conf import settings
+from apps.accounts.tasks import send_invite_mail
 
 from apps.game import filter_classes
 from apps.game.mixins.accessMixins import LoggedInMixin
+from apps.game import constants as game_constants
 from apps.game.models import Game, GamePlayer
 from apps.game.serializers import (
     CreateGameSerializer,
@@ -59,6 +63,20 @@ class CreateGamePlayer(LoggedInMixin, CreateAPIView):
     Create a Player who will play the game
     '''
     serializer_class = CreateGamePlayerSerializer
+
+    def post(self, request):
+        response = super(CreateGamePlayer, self).post(request)
+        game_id = response.data['game']
+        invited_user = response.data['user']
+        subject = game_constants.SUBJECT
+        game_owner = Game.objects.filter(id=game_id).first().owner
+        game_url = f'{game_constants.DOMAIN}/game/{game_id}'
+        message = f'{game_constants.MESSAGE} {game_owner} join right away by going to {game_url}'
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [invited_user]
+        send_invite_mail.delay(subject, message, email_from, recipient_list)
+        return response
+
 
 # This view is WIP, and  intended for stats part of project, also WIP
 # Therefore review fixes are not present here
