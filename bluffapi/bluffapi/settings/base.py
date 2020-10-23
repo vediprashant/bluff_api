@@ -34,9 +34,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'channels',
-
+    'rest_framework_swagger',
 ]
 
 ASGI_APPLICATION = "bluffapi.routing.application"
@@ -80,10 +79,14 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
 }
+
 
 WSGI_APPLICATION = 'bluffapi.wsgi.application'
 
@@ -121,6 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOGOUT_URL = 'rest_framework:logout'
+LOGIN_URL = 'rest_framework:login'
 
 # Internationalization
 
@@ -140,11 +145,11 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Dhaka'
+CELERY_TIMEZONE = 'Asia/Delhi'
 
 # Static files (CSS, JavaScript, Images)
-
 STATIC_URL = '/static/'
+
 CORS_ORIGIN_ALLOW_ALL = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
